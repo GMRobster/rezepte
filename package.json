@@ -1,0 +1,21 @@
+{
+  "name": "rezepte-app",
+  "version": "1.0.0",
+  "description": "Meine Rezepte",
+  "main": "electron/main.js",
+  "scripts": {
+    "electron": "electron . --disable-gpu",
+    "electron:build:linux": "electron-builder --linux AppImage deb"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "de.rezepte.app",
+    "productName": "Meine Rezepte",
+    "directories": { "output": "dist-electron" },
+    "files": ["electron/**/*", "src/**/*"],
+    "linux": { "target": ["AppImage","deb"], "category": "Utility" }
+  }
+}
