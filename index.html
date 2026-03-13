@@ -886,6 +886,19 @@ document.addEventListener('visibilitychange', ()=>{
 loadRecipes();
 document.getElementById('chipName').textContent = getName()||'Einstellungen';
 render();
+
+// Expose functions globally for inline onclick handlers
+Object.assign(window, {
+  openSettings, saveSettings, resetApp, toggleSort,
+  openAdd, openEdit, saveRecipe, openDetail, delRecipe,
+  openShareModal, shareVia, nativeShare, copyShareText, exportSingle,
+  exportAll, handleImport,
+  toggleSelectionMode, selectAll, selectNone, exportSelected,
+  updateCatSuggestions, handleTagKey,
+  openPortions, changeMultiplier, setMultiplier,
+  openOv, closeOv, installPWA,
+  toggleSelectionMode, selectAll, selectNone,
+});
 </script>
 </body>
 </html>
