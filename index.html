@@ -7,6 +7,7 @@
 <meta name="description" content="Persönliche Rezeptsammlung">
 <meta name="theme-color" content="#c8783a">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Rezepte">
 <link rel="manifest" href="manifest.json">
@@ -806,8 +807,6 @@ function updateCatSuggestions(){
 }
 
 // ══ PORTION CALCULATOR ══
-let portionsRecipe = null;
-let portionsMultiplier = 1;
 function openPortions(r){
   portionsRecipe = r; portionsMultiplier = 1;
   setMultiplier(1);
@@ -897,7 +896,6 @@ Object.assign(window, {
   updateCatSuggestions, handleTagKey,
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
-  toggleSelectionMode, selectAll, selectNone,
 });
 </script>
 </body>
