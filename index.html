@@ -1061,42 +1061,73 @@ function downloadFile(content, filename){
   URL.revokeObjectURL(a.href);
 }
 function exportAll(){
-  if(!recipes.length){ showToast('Keine Rezepte vorhanden.'); return; }
-  downloadFile(JSON.stringify({version:1,recipes},null,2),
+  if(!recipes.length && !dishes.length){ showToast('Keine Daten vorhanden.'); return; }
+  downloadFile(JSON.stringify({version:2, recipes, dishes, tagGroups},null,2),
     'rezepte-export-'+new Date().toISOString().slice(0,10)+'.json');
-  showToast('✓ '+recipes.length+' Rezepte exportiert');
+  showToast(`✓ ${recipes.length} Rezepte, ${dishes.length} Gerichte exportiert`);
 }
 async function handleImport(event){
   const file=event.target.files[0]; if(!file) return;
   event.target.value='';
   const text=await file.text();
-  let imported=[];
+  let importedRecipes=[], importedDishes=[], importedTagGroups=[];
   try{
-    if(file.name.endsWith('.json'))      imported=parseJsonImport(text);
-    else if(file.name.endsWith('.reze')) imported=parseRezeImport(text);
-    else{ showToast('⚠️ Unbekanntes Format'); return; }
+    if(file.name.endsWith('.json')){
+      const parsed = parseJsonImport(text);
+      importedRecipes = parsed.recipes;
+      importedDishes = parsed.dishes||[];
+      importedTagGroups = parsed.tagGroups||[];
+    } else if(file.name.endsWith('.reze')){
+      importedRecipes = parseRezeImport(text);
+    } else { showToast('⚠️ Unbekanntes Format'); return; }
   }catch(e){ showToast('⚠️ Fehler: '+e.message); return; }
-  if(!imported.length){ showToast('⚠️ Keine Rezepte gefunden'); return; }
-  let added=0;
-  for(const r of imported){
+
+  // Import recipes
+  let addedR=0;
+  for(const r of importedRecipes){
     if(!recipes.some(x=>x.title===r.title&&x.ingredients===r.ingredients)){
-      recipes.push(r); added++;
+      recipes.push(r); addedR++;
     }
   }
-  saveRecipes(); render();
-  showToast(`✓ ${added} neu importiert, ${imported.length-added} bereits vorhanden`, 4000);
+  // Import dishes (by name, keep existing)
+  let addedD=0;
+  for(const d of importedDishes){
+    if(!dishes.some(x=>x.name===d.name)){
+      dishes.push({...d, id:d.id||uid()}); addedD++;
+    }
+  }
+  // Import tag groups (merge tags into existing groups, add new groups)
+  for(const g of importedTagGroups){
+    const existing = tagGroups.find(x=>x.name===g.name);
+    if(existing){
+      g.tags.forEach(t=>{ if(!existing.tags.includes(t)) existing.tags.push(t); });
+    } else {
+      tagGroups.push({...g, id:g.id||uid()});
+    }
+  }
+
+  saveRecipes(); saveDishes(); saveTagGroups(); render();
+  const parts = [];
+  if(addedR) parts.push(addedR+' Rezepte');
+  if(addedD) parts.push(addedD+' Gerichte');
+  const skipped = (importedRecipes.length-addedR)+(importedDishes.length-addedD);
+  showToast(`✓ ${parts.join(', ')} importiert${skipped?' ('+skipped+' bereits vorhanden)':''}`, 4000);
 }
 function parseJsonImport(text){
   const data=JSON.parse(text);
+  // Support both old format (array or {recipes}) and new format ({version:2, recipes, dishes, tagGroups})
   const list=Array.isArray(data)?data:(data.recipes||[]);
-  return list.map(r=>({
-    ...r,
-    id:r.id||uid(),
-    created:r.created||new Date().toLocaleDateString('de-DE'),
-    // Normalize categories
-    categories:Array.isArray(r.categories)?r.categories:(r.category?[r.category]:[]),
-    category:Array.isArray(r.categories)?r.categories[0]||'':(r.category||''),
-  }));
+  return {
+    recipes: list.map(r=>({
+      ...r,
+      id:r.id||uid(),
+      created:r.created||new Date().toLocaleDateString('de-DE'),
+      categories:Array.isArray(r.categories)?r.categories:(r.category?[r.category]:[]),
+      category:Array.isArray(r.categories)?r.categories[0]||'':(r.category||''),
+    })),
+    dishes: (data.dishes||[]),
+    tagGroups: (data.tagGroups||[]),
+  };
 }
 function parseRezeImport(text){
   const clean=text.replace(/^\uFEFF/,'');
@@ -1365,9 +1396,13 @@ function updateSelCount(){
 function exportSelected(){
   if(!selectedIds.size){ showToast('Keine Rezepte ausgewählt.'); return; }
   const sel = recipes.filter(r=>selectedIds.has(r.id));
-  downloadFile(JSON.stringify({version:1,recipes:sel},null,2),
+  // Include dishes that reference at least one selected recipe
+  const selDishes = dishes.filter(d=>(d.recipeIds||[]).some(id=>selectedIds.has(id)));
+  downloadFile(JSON.stringify({version:2, recipes:sel, dishes:selDishes, tagGroups},null,2),
     'rezepte-auswahl-'+new Date().toISOString().slice(0,10)+'.json');
-  showToast('✓ '+sel.length+' Rezepte exportiert');
+  const parts = [sel.length+' Rezepte'];
+  if(selDishes.length) parts.push(selDishes.length+' Gerichte');
+  showToast('✓ '+parts.join(', ')+' exportiert');
   toggleSelectionMode();
 }
 
