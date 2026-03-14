@@ -169,23 +169,45 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 .cat-group .cats{margin-bottom:0}
 
 /* MENU CARDS */
-.menu-card{background:var(--warm);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .22s;box-shadow:0 2px 8px var(--sh);animation:fadeIn .28s ease}
-.menu-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px var(--sh);border-color:var(--amber2)}
-.menu-card-head{background:linear-gradient(135deg,var(--amber),var(--brown));padding:18px;color:white}
-.menu-card-head h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px}
-.menu-card-head p{font-size:.78rem;opacity:.85}
-.menu-card-body{padding:13px}
-.menu-recipe-link{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.88rem;cursor:pointer;transition:color .15s}
-.menu-recipe-link:last-child{border-bottom:none}
-.menu-recipe-link:hover{color:var(--amber)}
-.menu-recipe-link .link-em{font-size:1.2rem;width:28px;text-align:center}
-.menu-recipe-link .link-title{flex:1}
-.menu-recipe-link .link-arr{opacity:.35;font-size:.8rem}
+
 
 /* TAG GROUP EDITOR */
 .tg-group-row{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--pale);border-radius:10px;margin-bottom:8px}
 .tg-group-row .tg-name{font-weight:700;font-size:.88rem;min-width:90px;padding-top:3px}
 .tg-tags{display:flex;flex-wrap:wrap;gap:5px;flex:1}
+
+/* DISH CARDS */
+.dish-card{background:var(--warm);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .22s;box-shadow:0 2px 8px var(--sh);animation:fadeIn .28s ease}
+.dish-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px var(--sh);border-color:var(--amber2)}
+.dish-card-head{background:linear-gradient(135deg,var(--amber),var(--brown));padding:18px;color:white}
+.dish-card-head h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px}
+.dish-card-head p{font-size:.78rem;opacity:.85}
+.dish-card-body{padding:13px}
+.dish-recipe-link{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.88rem;cursor:pointer;transition:color .15s}
+.dish-recipe-link:last-child{border-bottom:none}
+.dish-recipe-link:hover{color:var(--amber)}
+.dish-link-em{font-size:1.2rem;width:28px;text-align:center}
+.dish-link-title{flex:1}
+.dish-link-arr{opacity:.35;font-size:.8rem}
+
+/* VARIANT BADGE */
+.variant-badge{display:inline-flex;align-items:center;gap:4px;background:#e8f0fe;color:#1a56db;border-radius:10px;padding:2px 8px;font-size:.68rem;font-weight:700;cursor:pointer}
+.variant-badge:hover{background:#c7d7fc}
+.variant-group{border:1.5px solid #c7d7fc;border-radius:12px;overflow:hidden;margin-bottom:4px}
+.variant-group-header{background:#e8f0fe;padding:7px 12px;font-size:.78rem;font-weight:700;color:#1a56db;display:flex;align-items:center;gap:8px}
+
+/* ORDER LIST PRINT */
+@media print{
+  .topbar,.tabs,.toolbar,.cats,.hdr-btns,.btn,.mcl{display:none!important}
+  .modal{box-shadow:none;border:none;padding:0}
+  body{background:white}
+}
+.order-section{margin-bottom:20px}
+.order-section h3{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--amber);border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:10px}
+.order-item{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:.9rem;border-bottom:1px dotted var(--border)}
+.order-item:last-child{border-bottom:none}
+.order-qty{font-weight:700;min-width:80px;color:var(--brown)}
+.order-name{flex:1}
 
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(16px);
   background:var(--ink);color:white;padding:9px 18px;border-radius:10px;font-size:.83rem;
@@ -237,7 +259,7 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
   <!-- TABS -->
   <div class="tabs">
     <button class="tab-btn active" id="tabRecipes" onclick="switchTab('recipes')">📋 Rezepte</button>
-    <button class="tab-btn" id="tabMenus" onclick="switchTab('menus')">🍽️ Menüs</button>
+    <button class="tab-btn" id="tabDishes" onclick="switchTab('dishes')">🍽️ Gerichte</button>
   </div>
 
   <!-- REZEPTE TAB -->
@@ -251,6 +273,9 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
     </div>
     <div class="toolbar">
       <div class="srch"><input type="text" id="search" placeholder="Rezept suchen…" oninput="render()"></div>
+      <select id="authorFilter" onchange="render()" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;background:var(--warm);font-family:'Lato',sans-serif;font-size:.88rem;color:var(--ink);outline:none;cursor:pointer;transition:border-color .2s" title="Nach Autor filtern">
+        <option value="">👤 Alle Autoren</option>
+      </select>
     </div>
     <div id="cats"></div>
     <p class="cnt" id="cnt"></p>
@@ -258,11 +283,11 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
   </div>
 
   <!-- MENÜS TAB -->
-  <div class="tab-pane" id="paneMenus">
+  <div class="tab-pane" id="paneDishes">
     <div style="display:flex;justify-content:flex-end;margin-bottom:18px">
-      <button class="btn btn-p" onclick="openMenuEditor()">+ Neues Menü</button>
+      <button class="btn btn-p" onclick="openDishEditor()">+ Neues Gericht</button>
     </div>
-    <div class="grid" id="menuGrid"></div>
+    <div class="grid" id="dishGrid"></div>
   </div>
 </div>
 
@@ -303,32 +328,32 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 </div>
 
 <!-- ══ MENU EDITOR ══ -->
-<div class="ov" id="ovMenuEditor">
+<div class="ov" id="ovDishEditor">
   <div class="modal">
-    <button class="mcl" onclick="closeOv('ovMenuEditor')">✕</button>
-    <h2 id="menuEditorTitle">Neues Menü</h2>
+    <button class="mcl" onclick="closeOv('ovDishEditor')">✕</button>
+    <h2 id="dishEditorTitle">Neues Gericht</h2>
     <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:16px">
       <div>
         <label>Name *</label>
-        <input type="text" id="meName" placeholder="z.B. Weihnachtsmenü 2024">
+        <input type="text" id="dishName" placeholder="z.B. Weihnachtsmenü 2024">
       </div>
       <div>
         <label>Beschreibung</label>
-        <input type="text" id="meDesc" placeholder="z.B. 4 Gänge für 6 Personen">
+        <input type="text" id="dishDesc" placeholder="z.B. 4 Gänge für 6 Personen">
       </div>
     </div>
     <label style="margin-bottom:10px;display:block">Rezepte (in Reihenfolge)</label>
-    <div id="meRecipeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
+    <div id="dishRecipeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
     <div style="position:relative;margin-bottom:16px">
-      <input type="text" id="meRecipeSearch" placeholder="Rezept suchen und hinzufügen…"
-        oninput="searchMenuRecipes(this.value)" autocomplete="off"
+      <input type="text" id="dishRecipeSearch" placeholder="Rezept suchen und hinzufügen…"
+        oninput="searchDishRecipes(this.value)" autocomplete="off"
         style="width:100%;padding-right:36px">
-      <div id="meRecipeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:white;border:1.5px solid var(--amber);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px var(--sh)"></div>
+      <div id="dishRecipeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:white;border:1.5px solid var(--amber);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px var(--sh)"></div>
     </div>
     <div class="fa">
-      <button class="btn btn-g" onclick="closeOv('ovMenuEditor')">Abbrechen</button>
-      <button class="btn btn-d btn-sm" id="meDeleteBtn" style="display:none" onclick="deleteMenu()">🗑 Löschen</button>
-      <button class="btn btn-p" onclick="saveMenu()">💾 Speichern</button>
+      <button class="btn btn-g" onclick="closeOv('ovDishEditor')">Abbrechen</button>
+      <button class="btn btn-d btn-sm" id="dishDeleteBtn" style="display:none" onclick="deleteDish()">🗑 Löschen</button>
+      <button class="btn btn-p" onclick="saveDish()">💾 Speichern</button>
     </div>
   </div>
 </div>
@@ -336,7 +361,7 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 <!-- ══ MENU DETAIL ══ -->
 <div class="ov" id="ovMenuDetail">
   <div class="modal">
-    <button class="mcl" onclick="closeOv('ovMenuDetail')">✕</button>
+    <button class="mcl" onclick="closeOv('ovDishDetail')">✕</button>
     <div id="menuDetailBody"></div>
   </div>
 </div>
@@ -445,14 +470,29 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
   </div>
 </div>
 
+<!-- ══ ORDER LIST ══ -->
+<div class="ov" id="ovOrderList">
+  <div class="modal" style="max-width:700px">
+    <button class="mcl" onclick="closeOv('ovOrderList')">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">
+      <h2 id="orderListTitle">🛒 Bestellliste</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g btn-sm" onclick="window.print()">🖨️ Drucken</button>
+        <button class="btn btn-p btn-sm" onclick="copyOrderList()">📋 Kopieren</button>
+      </div>
+    </div>
+    <div id="orderListBody"></div>
+  </div>
+</div>
+
 <script>
 // ══ STATE & STORAGE ══
 let recipes = [];
-let menus = [];       // [{id, name, desc, recipeIds:[]}]
+let dishes = [];       // [{id, name, desc, recipeIds:[]}]
 let tagGroups = [];   // [{id, name, tags:[]}]
 let editId = null;
-let editMenuId = null;
-let menuRecipes = []; // recipe ids currently being edited in menu
+let editDishId = null;
+let dishRecipes = []; // recipe ids currently being edited in menu
 let currentTags = [];
 let activeCats = new Set();
 let sortOrder = 'az';
@@ -473,14 +513,14 @@ const ls = {
 
 function loadRecipes(){
   try{ recipes = JSON.parse(ls.get('rz_recipes')||'[]'); }catch{ recipes=[]; }
-  try{ menus = JSON.parse(ls.get('rz_menus')||'[]'); }catch{ menus=[]; }
+  try{ dishes = JSON.parse(ls.get('rz_dishes')||'[]'); }catch{ dishes=[]; }
   try{ tagGroups = JSON.parse(ls.get('rz_taggroups')||'[]'); }catch{ tagGroups=[]; }
 }
 function saveRecipes(){
   ls.set('rz_recipes', JSON.stringify(recipes));
 }
-function saveMenus(){
-  ls.set('rz_menus', JSON.stringify(menus));
+function saveDishes(){
+  ls.set('rz_dishes', JSON.stringify(dishes));
 }
 function saveTagGroups(){
   ls.set('rz_taggroups', JSON.stringify(tagGroups));
@@ -534,9 +574,9 @@ function saveSettings(){
 }
 function resetApp(){
   if(!confirm('Alle Rezepte, Menüs und Einstellungen löschen?\nDiese Aktion kann nicht rückgängig gemacht werden!')) return;
-  ['rz_recipes','rz_name','rz_menus','rz_taggroups'].forEach(k=>ls.del(k));
-  recipes=[]; menus=[]; tagGroups=[];
-  closeOv('ovSettings'); render(); renderMenus();
+  ['rz_recipes','rz_name','rz_dishes','rz_taggroups'].forEach(k=>ls.del(k));
+  recipes=[]; dishes=[]; tagGroups=[];
+  closeOv('ovSettings'); render(); renderDishes();
   showToast('Zurückgesetzt.');
 }
 
@@ -595,13 +635,13 @@ function removeTagFromGroup(gi, ti){ tagGroups[gi].tags.splice(ti,1); saveTagGro
 function switchTab(tab){
   currentTab = tab;
   document.getElementById('paneRecipes').classList.toggle('active', tab==='recipes');
-  document.getElementById('paneMenus').classList.toggle('active', tab==='menus');
+  document.getElementById('paneDishes').classList.toggle('active', tab==='dishes');
   document.getElementById('tabRecipes').classList.toggle('active', tab==='recipes');
-  document.getElementById('tabMenus').classList.toggle('active', tab==='menus');
+  document.getElementById('tabDishes').classList.toggle('active', tab==='dishes');
   document.getElementById('addBtn').style.display = tab==='recipes' ? '' : 'none';
   document.getElementById('sortBtn').style.display = tab==='recipes' ? '' : 'none';
   document.getElementById('selBtn').style.display = tab==='recipes' ? '' : 'none';
-  if(tab==='menus') renderMenus();
+  if(tab==='dishes') renderDishes();
 }
 
 // ══ SORT ══
@@ -615,6 +655,16 @@ function toggleSort(){
 // ══ RENDER ══
 function render(){
   const q = (document.getElementById('search')?.value||'').toLowerCase();
+  const activeAuthor = document.getElementById('authorFilter')?.value || '';
+
+  // Populate author filter dropdown
+  const authorSel = document.getElementById('authorFilter');
+  if(authorSel){
+    const authors = [...new Set(recipes.map(r=>r.author).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+    const cur = authorSel.value;
+    authorSel.innerHTML = '<option value="">👤 Alle Autoren</option>' +
+      authors.map(a=>`<option value="${esc(a)}"${a===cur?' selected':''}>${esc(a)}</option>`).join('');
+  }
 
   // Build category list from all recipes
   const catSet = new Set();
@@ -674,7 +724,8 @@ function render(){
       ||rCats.join(' ').toLowerCase().includes(q)
       ||(r.ingredients||'').toLowerCase().includes(q);
     const mc = activeCats.size===0 || rCats.some(c=>activeCats.has(c));
-    return mq && mc;
+    const ma = !activeAuthor || r.author===activeAuthor;
+    return mq && mc && ma;
   });
 
   list.sort((a,b)=>{
@@ -695,8 +746,14 @@ function render(){
     return;
   }
 
+  // Group variants: recipes with same title by different authors
+  const titleMap = {};
+  list.forEach(r=>{ const t=(r.title||'').toLowerCase(); if(!titleMap[t]) titleMap[t]=[]; titleMap[t].push(r); });
+
   document.getElementById('grid').innerHTML = list.map((r,i)=>{
     const rCats = getRCats(r);
+    const variants = titleMap[(r.title||'').toLowerCase()] || [];
+    const hasVariants = variants.length > 1;
     return `<div class="card${selectionMode&&selectedIds.has(r.id)?' card-selected':''}" data-id="${esc(r.id)}" style="animation-delay:${Math.min(i,12)*25}ms">
       ${selectionMode?`<div style="position:absolute;top:8px;right:8px;z-index:2;background:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid ${selectedIds.has(r.id)?'var(--amber)':'var(--border)'}">
         ${selectedIds.has(r.id)?'<span style="color:var(--amber);font-size:14px">✓</span>':''}</div>`:''}
@@ -706,10 +763,12 @@ function render(){
         <div class="card-meta">
           ${r.time?`<span>⏱ ${esc(r.time)}</span>`:''}
           ${r.portions?`<span>👥 ${esc(r.portions)}</span>`:''}
+          ${r.author?`<span>👤 ${esc(r.author)}</span>`:''}
         </div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
           ${rCats.map(c=>`<span class="tag">${esc(c)}</span>`).join('')}
           ${r.importedFrom?`<span class="tag tag-g">von ${esc(r.importedFrom)}</span>`:''}
+          ${hasVariants?`<span class="variant-badge" data-title="${esc(r.title)}">⚡ ${variants.length} Versionen</span>`:''}
         </div>
       </div>
     </div>`;
@@ -717,15 +776,24 @@ function render(){
 
   document.querySelectorAll('.card[data-id]').forEach(el=>{
     el.style.position = 'relative';
-    el.addEventListener('click',()=>{
+    el.addEventListener('click', e=>{
+      // Don't open detail if variant badge was clicked
+      if(e.target.closest('.variant-badge')) return;
       if(selectionMode){
         const id = el.dataset.id;
         selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id);
-        updateSelCount();
-        render();
+        updateSelCount(); render();
       } else {
         openDetail(el.dataset.id);
       }
+    });
+  });
+  // Variant badge → filter by that title
+  document.querySelectorAll('.variant-badge[data-title]').forEach(badge=>{
+    badge.addEventListener('click', e=>{
+      e.stopPropagation();
+      document.getElementById('search').value = badge.dataset.title;
+      render();
     });
   });
 }
@@ -1063,68 +1131,70 @@ function parseRezeImport(text){
 }
 
 // ══ MENUS ══
-function renderMenus(){
-  const el = document.getElementById('menuGrid');
+function renderDishes(){
+  const el = document.getElementById('dishGrid');
   if(!el) return;
-  if(!menus.length){
+  if(!dishes.length){
     el.innerHTML=`<div class="empty" style="grid-column:1/-1">
       <div class="bi">🍽️</div>
-      <h3>Noch keine Menüs</h3>
-      <p>Fasse Rezepte zu einem Gericht oder Menü zusammen.</p>
+      <h3>Noch keine Gerichte</h3>
+      <p>Fasse Rezepte zu einem Gericht zusammen.</p>
     </div>`; return;
   }
   el.innerHTML='';
-  menus.forEach(m=>{
+  dishes.forEach(m=>{
     const linkedRecipes = (m.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
-    const card = document.createElement('div'); card.className='menu-card';
+    const card = document.createElement('div'); card.className='dish-card';
     card.innerHTML=`
-      <div class="menu-card-head">
+      <div class="dish-card-head">
         <h3>${esc(m.name)}</h3>
         ${m.desc?`<p>${esc(m.desc)}</p>`:''}
       </div>
-      <div class="menu-card-body">
+      <div class="dish-card-body">
         ${linkedRecipes.length
           ? linkedRecipes.map(r=>`
-              <div class="menu-recipe-link" data-rid="${esc(r.id)}">
-                <span class="link-em">${esc(r.emoji||'📋')}</span>
-                <span class="link-title">${esc(r.title)}</span>
-                <span class="link-arr">→</span>
+              <div class="dish-recipe-link" data-rid="${esc(r.id)}">
+                <span class="dish-link-em">${esc(r.emoji||'📋')}</span>
+                <span class="dish-link-title">${esc(r.title)}</span>
+                <span class="dish-link-arr">→</span>
               </div>`).join('')
           : '<p style="font-size:.82rem;color:var(--brown);opacity:.6">Keine Rezepte verknüpft.</p>'
         }
         <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
           <button class="btn btn-g btn-sm" data-edit="${esc(m.id)}">✏️ Bearbeiten</button>
+          <button class="btn btn-p btn-sm" data-order="${esc(m.id)}">🛒 Bestellliste</button>
         </div>
       </div>`;
     // Click on recipe links → open recipe detail
-    card.querySelectorAll('.menu-recipe-link[data-rid]').forEach(lnk=>{
+    card.querySelectorAll('.dish-recipe-link[data-rid]').forEach(lnk=>{
       lnk.addEventListener('click', e=>{ e.stopPropagation(); openDetail(lnk.dataset.rid); });
     });
     // Edit button
-    card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openMenuEditor(m.id); });
+    card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openDishEditor(m.id); });
+    card.querySelector('[data-order]').addEventListener('click', e=>{ e.stopPropagation(); openOrderList(m.id); });
     el.appendChild(card);
   });
 }
 
-function openMenuEditor(menuId=null){
-  editMenuId = menuId;
-  const m = menuId ? menus.find(x=>x.id===menuId) : null;
-  document.getElementById('menuEditorTitle').textContent = m ? 'Menü bearbeiten' : 'Neues Menü';
-  document.getElementById('meName').value = m?.name||'';
-  document.getElementById('meDesc').value = m?.desc||'';
-  document.getElementById('meDeleteBtn').style.display = m ? '' : 'none';
-  menuRecipes = m ? [...(m.recipeIds||[])] : [];
-  renderMenuRecipeList();
-  document.getElementById('meRecipeSearch').value='';
-  document.getElementById('meRecipeSuggestions').style.display='none';
-  openOv('ovMenuEditor');
+function openDishEditor(menuId=null){
+  editDishId = menuId;
+  const m = menuId ? dishes.find(x=>x.id===menuId) : null;
+  document.getElementById('dishEditorTitle').textContent = m ? 'Gericht bearbeiten' : 'Neues Gericht';
+  document.getElementById('dishName').value = m?.name||'';
+  document.getElementById('dishDesc').value = m?.desc||'';
+  document.getElementById('dishDeleteBtn').style.display = m ? '' : 'none';
+  dishRecipes = m ? [...(m.recipeIds||[])] : [];
+  renderDishRecipeList();
+  document.getElementById('dishRecipeSearch').value='';
+  document.getElementById('dishRecipeSuggestions').style.display='none';
+  openOv('ovDishEditor');
 }
 
-function renderMenuRecipeList(){
-  const el = document.getElementById('meRecipeList');
-  if(!menuRecipes.length){ el.innerHTML='<p style="font-size:.8rem;color:var(--brown);opacity:.6">Noch keine Rezepte hinzugefügt.</p>'; return; }
+function renderDishRecipeList(){
+  const el = document.getElementById('dishRecipeList');
+  if(!dishRecipes.length){ el.innerHTML='<p style="font-size:.8rem;color:var(--brown);opacity:.6">Noch keine Rezepte hinzugefügt.</p>'; return; }
   el.innerHTML='';
-  menuRecipes.forEach((id,i)=>{
+  dishRecipes.forEach((id,i)=>{
     const r = recipes.find(x=>x.id===id);
     if(!r) return;
     const row = document.createElement('div');
@@ -1132,20 +1202,20 @@ function renderMenuRecipeList(){
     row.innerHTML=`<span style="font-size:1.1rem">${esc(r.emoji||'📋')}</span>
       <span style="flex:1">${esc(r.title)}</span>
       ${i>0?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-up="${i}">↑</button>`:''}
-      ${i<menuRecipes.length-1?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-dn="${i}">↓</button>`:''}
+      ${i<dishRecipes.length-1?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-dn="${i}">↓</button>`:''}
       <button class="btn btn-d btn-sm" style="padding:2px 7px" data-rm="${i}">✕</button>`;
-    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ menuRecipes.splice(i,1); renderMenuRecipeList(); });
-    row.querySelector('[data-up]')?.addEventListener('click',()=>{ [menuRecipes[i-1],menuRecipes[i]]=[menuRecipes[i],menuRecipes[i-1]]; renderMenuRecipeList(); });
-    row.querySelector('[data-dn]')?.addEventListener('click',()=>{ [menuRecipes[i],menuRecipes[i+1]]=[menuRecipes[i+1],menuRecipes[i]]; renderMenuRecipeList(); });
+    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ dishRecipes.splice(i,1); renderDishRecipeList(); });
+    row.querySelector('[data-up]')?.addEventListener('click',()=>{ [dishRecipes[i-1],dishRecipes[i]]=[dishRecipes[i],dishRecipes[i-1]]; renderDishRecipeList(); });
+    row.querySelector('[data-dn]')?.addEventListener('click',()=>{ [dishRecipes[i],dishRecipes[i+1]]=[dishRecipes[i+1],dishRecipes[i]]; renderDishRecipeList(); });
     el.appendChild(row);
   });
 }
 
-function searchMenuRecipes(q){
-  const box = document.getElementById('meRecipeSuggestions');
+function searchDishRecipes(q){
+  const box = document.getElementById('dishRecipeSuggestions');
   if(!q.trim()){ box.style.display='none'; return; }
   const matches = recipes.filter(r=>
-    (r.title||'').toLowerCase().includes(q.toLowerCase()) && !menuRecipes.includes(r.id)
+    (r.title||'').toLowerCase().includes(q.toLowerCase()) && !dishRecipes.includes(r.id)
   ).slice(0,8);
   if(!matches.length){ box.style.display='none'; return; }
   box.style.display='block';
@@ -1155,9 +1225,9 @@ function searchMenuRecipes(q){
     </div>`).join('');
   box.querySelectorAll('[data-id]').forEach(row=>{
     row.addEventListener('click',()=>{
-      menuRecipes.push(row.dataset.id);
-      renderMenuRecipeList();
-      document.getElementById('meRecipeSearch').value='';
+      dishRecipes.push(row.dataset.id);
+      renderDishRecipeList();
+      document.getElementById('dishRecipeSearch').value='';
       box.style.display='none';
     });
     row.addEventListener('mouseover',()=>row.style.background=`var(--pale)`);
@@ -1165,25 +1235,116 @@ function searchMenuRecipes(q){
   });
 }
 
-function saveMenu(){
-  const name = document.getElementById('meName').value.trim();
+function saveDish(){
+  const name = document.getElementById('dishName').value.trim();
   if(!name){ showToast('Bitte einen Namen eingeben.'); return; }
-  const data = { name, desc: document.getElementById('meDesc').value.trim(), recipeIds: [...menuRecipes] };
-  if(editMenuId){
-    const i = menus.findIndex(m=>m.id===editMenuId);
-    menus[i] = {...menus[i], ...data};
+  const data = { name, desc: document.getElementById('dishDesc').value.trim(), recipeIds: [...dishRecipes] };
+  if(editDishId){
+    const i = dishes.findIndex(m=>m.id===editDishId);
+    dishes[i] = {...dishes[i], ...data};
   } else {
-    menus.unshift({id:uid(), ...data});
+    dishes.unshift({id:uid(), ...data});
   }
-  saveMenus(); closeOv('ovMenuEditor'); renderMenus();
-  showToast(editMenuId?'✓ Menü aktualisiert!':'✓ Menü gespeichert!');
+  saveDishes(); closeOv('ovDishEditor'); renderDishes();
+  showToast(editDishId?'✓ Gericht aktualisiert!':'✓ Gericht gespeichert!');
 }
 
-function deleteMenu(){
-  if(!editMenuId || !confirm('Menü wirklich löschen?')) return;
-  menus = menus.filter(m=>m.id!==editMenuId);
-  saveMenus(); closeOv('ovMenuEditor'); renderMenus();
-  showToast('Menü gelöscht.');
+function deleteDish(){
+  if(!editDishId || !confirm('Gericht wirklich löschen?')) return;
+  dishes = dishes.filter(m=>m.id!==editDishId);
+  saveDishes(); closeOv('ovDishEditor'); renderDishes();
+  showToast('Gericht gelöscht.');
+}
+
+// ══ ORDER LIST ══
+function openOrderList(dishId){
+  const dish = dishes.find(d=>d.id===dishId);
+  if(!dish) return;
+  const linked = (dish.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+
+  document.getElementById('orderListTitle').textContent = '🛒 '+dish.name;
+
+  // Parse ingredients into {amount, unit, name} objects
+  const allItems = [];
+  linked.forEach(r=>{
+    (r.ingredients||'').split('\n').forEach(line=>{
+      line = line.trim();
+      if(!line) return;
+      // Match: optional number + optional unit + rest
+      const m = line.match(/^(\d+[.,]?\d*)\s*([a-zA-ZäöüÄÖÜ]*)\s+(.+)$/);
+      if(m){
+        allItems.push({ qty: parseFloat(m[1].replace(',','.')), unit: m[2]||'', name: m[3].trim().toLowerCase(), raw: line, recipe: r.title });
+      } else {
+        allItems.push({ qty: null, unit: '', name: line.toLowerCase(), raw: line, recipe: r.title });
+      }
+    });
+  });
+
+  // Merge same ingredient+unit
+  const merged = {};
+  allItems.forEach(item=>{
+    const key = item.name+'|'+item.unit.toLowerCase();
+    if(!merged[key]) merged[key] = { name:item.name, unit:item.unit, qty:0, hasQty:false, recipes:new Set() };
+    if(item.qty !== null){ merged[key].qty += item.qty; merged[key].hasQty = true; }
+    merged[key].recipes.add(item.recipe);
+  });
+
+  const sortedMerged = Object.values(merged).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+
+  // Build HTML
+  let html = '';
+
+  // Section 1: Summierte Einkaufsliste
+  html += '<div class="order-section">';
+  html += '<h3>📦 Einkaufsliste (summiert)</h3>';
+  sortedMerged.forEach(item=>{
+    const qtyStr = item.hasQty
+      ? `${Math.round(item.qty*100)/100} ${item.unit}`.trim()
+      : '—';
+    html += `<div class="order-item">
+      <span class="order-qty">${esc(qtyStr)}</span>
+      <span class="order-name">${esc(item.name.charAt(0).toUpperCase()+item.name.slice(1))}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Section 2: Per Rezept aufgeschlüsselt
+  html += '<div class="order-section">';
+  html += '<h3>📋 Aufgeschlüsselt nach Rezept</h3>';
+  linked.forEach(r=>{
+    const lines = (r.ingredients||'').split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!lines.length) return;
+    html += `<div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:6px;color:var(--brown)">
+        ${esc(r.emoji||'📋')} ${esc(r.title)}
+        ${r.portions?`<span style="font-weight:400;opacity:.7"> · ${esc(r.portions)}</span>`:''}
+      </div>`;
+    lines.forEach(line=>{
+      html += `<div class="order-item"><span class="order-name" style="margin-left:8px">${esc(line)}</span></div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  document.getElementById('orderListBody').innerHTML = html;
+  openOv('ovOrderList');
+}
+
+function copyOrderList(){
+  const body = document.getElementById('orderListBody');
+  // Plain text version
+  let text = document.getElementById('orderListTitle').textContent + '\n\n';
+  body.querySelectorAll('.order-section').forEach(sec=>{
+    text += sec.querySelector('h3').textContent + '\n';
+    sec.querySelectorAll('.order-item').forEach(item=>{
+      const qty = item.querySelector('.order-qty');
+      const name = item.querySelector('.order-name');
+      text += (qty ? qty.textContent.trim()+'\t' : '') + (name ? name.textContent.trim() : '') + '\n';
+    });
+    text += '\n';
+  });
+  try{ navigator.clipboard.writeText(text.trim()); }catch{}
+  showToast('✓ Bestellliste kopiert!');
 }
 
 // ══ SELECTION MODE ══
@@ -1326,7 +1487,7 @@ Object.assign(window, {
   updateCatSuggestions, handleTagKey,
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
-  openMenuEditor, saveMenu, deleteMenu, searchMenuRecipes,
+  openDishEditor, saveDish, deleteDish, searchDishRecipes, openOrderList, copyOrderList,
   addTagGroup, removeTagGroup, renameTagGroup, addTagToGroup, removeTagFromGroup,
 });
 </script>
