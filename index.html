@@ -290,22 +290,40 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
   <div class="modal sm">
     <button class="mcl" onclick="closeOv('ovShare')">✕</button>
     <h2>🔗 Rezept teilen</h2>
-    <div class="sbox">
-      <textarea id="sharePreview" readonly rows="6"
-        style="font-size:.81rem;line-height:1.6;background:white;font-family:'Lato',sans-serif;border:none;width:100%;resize:none;outline:none;padding:2px"></textarea>
+
+    <!-- Link teilen (für App-Nutzer) -->
+    <div style="margin-bottom:14px">
+      <p style="font-size:.8rem;font-weight:700;color:var(--brown);margin-bottom:8px">📲 Als Link teilen <small style="font-weight:400">(Empfänger braucht die App)</small></p>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <button class="share-app-btn" id="btnNativeShare" onclick="nativeShare('link')" style="display:none">
+          <span>📤</span> Teilen über… <small>(WhatsApp, Telegram…)</small>
+        </button>
+        <button class="share-app-btn wa" onclick="shareVia('whatsapp','link')"><span>💬</span> WhatsApp</button>
+        <button class="share-app-btn tg" onclick="shareVia('telegram','link')"><span>✈️</span> Telegram</button>
+        <button class="share-app-btn cp" onclick="copyLink()">
+          <span>🔗</span> Link kopieren
+          <div class="copied" id="copiedLinkBadge" style="margin-left:auto;margin-top:0">✓ Kopiert!</div>
+        </button>
+      </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="share-app-btn" id="btnNativeShare" onclick="nativeShare()" style="display:none">
-        <span>📤</span> Teilen über… <small>(WhatsApp, Telegram…)</small>
-      </button>
-      <button class="share-app-btn wa" onclick="shareVia('whatsapp')"><span>💬</span> WhatsApp <small>(als Text)</small></button>
-      <button class="share-app-btn tg" onclick="shareVia('telegram')"><span>✈️</span> Telegram</button>
-      <button class="share-app-btn em" onclick="shareVia('email')"><span>📧</span> E-Mail</button>
-      <button class="share-app-btn dl" onclick="exportSingle()"><span>📁</span> Als .json exportieren <small>(für App-Nutzer)</small></button>
-      <button class="share-app-btn cp" onclick="copyShareText()">
-        <span>📋</span> Text kopieren
-        <div class="copied" id="copiedBadge" style="margin-left:auto;margin-top:0">✓ Kopiert!</div>
-      </button>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+
+    <!-- Als Text (für alle) -->
+    <div>
+      <p style="font-size:.8rem;font-weight:700;color:var(--brown);margin-bottom:8px">💬 Als Text teilen <small style="font-weight:400">(für alle lesbar)</small></p>
+      <div class="sbox" style="margin-top:0;margin-bottom:8px">
+        <textarea id="sharePreview" readonly rows="5"
+          style="font-size:.79rem;line-height:1.6;background:white;font-family:'Lato',sans-serif;border:none;width:100%;resize:none;outline:none;padding:2px"></textarea>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <button class="share-app-btn wa" onclick="shareVia('whatsapp','text')"><span>💬</span> WhatsApp <small>(Text)</small></button>
+        <button class="share-app-btn em" onclick="shareVia('email','text')"><span>📧</span> E-Mail</button>
+        <button class="share-app-btn cp" onclick="copyShareText()">
+          <span>📋</span> Text kopieren
+          <div class="copied" id="copiedBadge" style="margin-left:auto;margin-top:0">✓ Kopiert!</div>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -628,6 +646,13 @@ function delRecipe(id){
 }
 
 // ══ SHARE ══
+const APP_URL = 'https://gmrobster.github.io/rezepte/';
+
+function makeShareLink(r){
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(r))));
+  return APP_URL + '#import=' + payload;
+}
+
 function recipeToText(r){
   const rCats=getRCats(r);
   const lines=[];
@@ -642,40 +667,121 @@ function recipeToText(r){
   if(r.author) lines.push('\n— Rezept von '+r.author);
   return lines.join('\n');
 }
+
 function openShareModal(r){
   if(!r) return;
   currentShareRecipe=r;
   currentShareText=recipeToText(r);
   document.getElementById('sharePreview').value=currentShareText;
   document.getElementById('copiedBadge').classList.remove('on');
-  document.getElementById('btnNativeShare').style.display=navigator.share?'flex':'none';
+  document.getElementById('copiedLinkBadge').classList.remove('on');
+  const nb = document.getElementById('btnNativeShare');
+  nb.style.display = navigator.share ? 'flex' : 'none';
   openOv('ovShare');
 }
-function shareVia(channel){
-  const text=encodeURIComponent(currentShareText);
-  const title=encodeURIComponent('Rezept: '+(currentShareRecipe?.title||''));
+
+function shareVia(channel, mode='link'){
+  const isLink = mode==='link';
+  const content = isLink ? makeShareLink(currentShareRecipe) : currentShareText;
+  const title = encodeURIComponent('Rezept: '+(currentShareRecipe?.title||''));
+  const enc = encodeURIComponent(content);
   const urls={
-    whatsapp:'https://wa.me/?text='+text,
-    telegram:'https://t.me/share/url?url=&text='+text,
-    email:'mailto:?subject='+title+'&body='+text,
+    whatsapp: 'https://wa.me/?text='+enc,
+    telegram: isLink
+      ? 'https://t.me/share/url?url='+encodeURIComponent(makeShareLink(currentShareRecipe))+'&text='+title
+      : 'https://t.me/share/url?url=&text='+enc,
+    email: 'mailto:?subject='+title+'&body='+enc,
   };
   if(urls[channel]) window.open(urls[channel],'_blank');
 }
-async function nativeShare(){
-  try{ await navigator.share({title:'Rezept: '+(currentShareRecipe?.title||''), text:currentShareText}); }
-  catch(e){ if(e.name!=='AbortError') copyShareText(); }
+
+async function nativeShare(mode='link'){
+  const isLink = mode==='link';
+  const shareData = isLink
+    ? { title:'Rezept: '+(currentShareRecipe?.title||''), text:'Schau dir dieses Rezept an:', url: makeShareLink(currentShareRecipe) }
+    : { title:'Rezept: '+(currentShareRecipe?.title||''), text: currentShareText };
+  try{ await navigator.share(shareData); }
+  catch(e){ if(e.name!=='AbortError') isLink ? copyLink() : copyShareText(); }
 }
+
+function copyLink(){
+  const link = makeShareLink(currentShareRecipe);
+  try{ navigator.clipboard.writeText(link); }
+  catch{ }
+  document.getElementById('copiedLinkBadge').classList.add('on');
+  showToast('✓ Link kopiert!');
+}
+
 function copyShareText(){
   try{ navigator.clipboard.writeText(currentShareText); }
   catch{ const ta=document.getElementById('sharePreview'); ta.select(); document.execCommand('copy'); }
   document.getElementById('copiedBadge').classList.add('on');
   showToast('✓ Text kopiert!');
 }
+
 function exportSingle(){
   if(!currentShareRecipe) return;
   const data=JSON.stringify({version:1, recipes:[currentShareRecipe]}, null, 2);
   downloadFile(data, 'rezept-'+(currentShareRecipe.title||'export').replace(/[^a-z0-9äöü]/gi,'_').toLowerCase()+'.json');
   showToast('✓ Rezept exportiert!');
+}
+
+// Check for shared recipe in URL on load
+function checkUrlImport(){
+  const hash = window.location.hash;
+  if(!hash.startsWith('#import=')) return;
+  try{
+    const r = JSON.parse(decodeURIComponent(escape(atob(hash.slice(8)))));
+    if(!r || !r.title) return;
+    // Clean URL without reloading
+    history.replaceState(null,'', window.location.pathname);
+    // Show import dialog
+    showImportPrompt(r);
+  }catch{}
+}
+
+function showImportPrompt(r){
+  const rCats = getRCats(r);
+  const already = recipes.some(x=>x.title===r.title&&x.ingredients===r.ingredients);
+
+  // Build a simple confirm overlay
+  const div = document.createElement('div');
+  div.className = 'ov on';
+  div.id = 'ovImportPrompt';
+  div.innerHTML = `
+    <div class="modal sm" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:10px">${esc(r.emoji||'🍽️')}</div>
+      <h2 style="margin-bottom:8px">${esc(r.title)}</h2>
+      <p style="font-size:.85rem;color:var(--brown);margin-bottom:6px">
+        ${rCats.length?'🏷 '+rCats.join(', ')+'<br>':''}
+        ${r.author?'👤 von '+esc(r.author):''}
+      </p>
+      ${already
+        ? `<p style="background:var(--pale);border-radius:8px;padding:10px;font-size:.85rem;margin:14px 0">
+             Dieses Rezept ist bereits in deiner Sammlung.
+           </p>`
+        : `<p style="background:var(--pale);border-radius:8px;padding:10px;font-size:.85rem;margin:14px 0">
+             Möchtest du dieses Rezept zu deiner Sammlung hinzufügen?
+           </p>`
+      }
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        ${!already?`<button class="btn btn-p" id="btnConfirmImport">✓ Hinzufügen</button>`:''}
+        <button class="btn btn-g" id="btnDismissImport">${already?'OK':'Abbrechen'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+
+  div.querySelector('#btnDismissImport').onclick = ()=>div.remove();
+  if(!already){
+    div.querySelector('#btnConfirmImport').onclick = ()=>{
+      const newR = {...r, id:uid(), created:new Date().toLocaleDateString('de-DE'), importedFrom:r.author||''};
+      recipes.unshift(newR);
+      saveRecipes(); render();
+      div.remove();
+      showToast('✓ „'+r.title+'" hinzugefügt!');
+    };
+  }
+  div.addEventListener('click', e=>{ if(e.target===div) div.remove(); });
 }
 
 // ══ IMPORT / EXPORT ══
@@ -885,12 +991,13 @@ document.addEventListener('visibilitychange', ()=>{
 loadRecipes();
 document.getElementById('chipName').textContent = getName()||'Einstellungen';
 render();
+checkUrlImport();
 
 // Expose functions globally for inline onclick handlers
 Object.assign(window, {
   openSettings, saveSettings, resetApp, toggleSort,
   openAdd, openEdit, saveRecipe, openDetail, delRecipe,
-  openShareModal, shareVia, nativeShare, copyShareText, exportSingle,
+  openShareModal, shareVia, nativeShare, copyShareText, copyLink, exportSingle,
   exportAll, handleImport,
   toggleSelectionMode, selectAll, selectNone, exportSelected,
   updateCatSuggestions, handleTagKey,
