@@ -284,8 +284,18 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 
   <!-- MENÜS TAB -->
   <div class="tab-pane" id="paneDishes">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g btn-sm" id="dishSelBtn" onclick="toggleDishSelection()">☑️ Auswählen</button>
+      </div>
       <button class="btn btn-p" onclick="openDishEditor()">+ Neues Gericht</button>
+    </div>
+    <div id="dishSelToolbar" style="display:none;background:var(--pale);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="dishSelCount" style="font-size:.85rem;color:var(--brown);flex:1">0 ausgewählt</span>
+      <button class="btn btn-g btn-sm" onclick="selectAllDishes()">Alle</button>
+      <button class="btn btn-g btn-sm" onclick="selectNoDishes()">Keine</button>
+      <button class="btn btn-p btn-sm" onclick="exportSelectedDishes()">📤 Auswahl exportieren</button>
+      <button class="btn btn-g btn-sm" onclick="toggleDishSelection()">✕ Abbrechen</button>
     </div>
     <div class="grid" id="dishGrid"></div>
   </div>
@@ -502,6 +512,8 @@ let currentShareText = '';
 let deferredInstallPrompt = null;
 let selectionMode = false;
 let selectedIds = new Set();
+let dishSelectionMode = false;
+let selectedDishIds = new Set();
 let portionsRecipe = null;
 let portionsMultiplier = 1;
 
@@ -1175,8 +1187,13 @@ function renderDishes(){
   el.innerHTML='';
   dishes.forEach(m=>{
     const linkedRecipes = (m.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
-    const card = document.createElement('div'); card.className='dish-card';
+    const isSelected = dishSelectionMode && selectedDishIds.has(m.id);
+    const card = document.createElement('div');
+    card.className='dish-card'+(isSelected?' card-selected':'');
+    card.style.position='relative';
     card.innerHTML=`
+      ${dishSelectionMode?`<div style="position:absolute;top:8px;right:8px;z-index:2;background:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border:2px solid ${isSelected?'var(--amber)':'var(--border)'}">
+        ${isSelected?'<span style="color:var(--amber);font-size:14px">✓</span>':''}</div>`:''}
       <div class="dish-card-head">
         <h3>${esc(m.name)}</h3>
         ${m.desc?`<p>${esc(m.desc)}</p>`:''}
@@ -1196,13 +1213,21 @@ function renderDishes(){
           <button class="btn btn-p btn-sm" data-order="${esc(m.id)}">🛒 Bestellliste</button>
         </div>
       </div>`;
-    // Click on recipe links → open recipe detail
-    card.querySelectorAll('.dish-recipe-link[data-rid]').forEach(lnk=>{
-      lnk.addEventListener('click', e=>{ e.stopPropagation(); openDetail(lnk.dataset.rid); });
-    });
-    // Edit button
-    card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openDishEditor(m.id); });
-    card.querySelector('[data-order]').addEventListener('click', e=>{ e.stopPropagation(); openOrderList(m.id); });
+    // Click on recipe links → open recipe detail (only when not selecting)
+    if(!dishSelectionMode){
+      card.querySelectorAll('.dish-recipe-link[data-rid]').forEach(lnk=>{
+        lnk.addEventListener('click', e=>{ e.stopPropagation(); openDetail(lnk.dataset.rid); });
+      });
+      card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openDishEditor(m.id); });
+      card.querySelector('[data-order]').addEventListener('click', e=>{ e.stopPropagation(); openOrderList(m.id); });
+    } else {
+      // In selection mode, clicking card toggles selection
+      card.addEventListener('click', ()=>{
+        selectedDishIds.has(m.id) ? selectedDishIds.delete(m.id) : selectedDishIds.add(m.id);
+        updateDishSelCount();
+        renderDishes();
+      });
+    }
     el.appendChild(card);
   });
 }
@@ -1513,6 +1538,33 @@ render();
 checkUrlImport();
 
 // Expose functions globally for inline onclick handlers
+// ══ DISH SELECTION ══
+function toggleDishSelection(){
+  dishSelectionMode = !dishSelectionMode;
+  selectedDishIds.clear();
+  const tb = document.getElementById('dishSelToolbar');
+  const btn = document.getElementById('dishSelBtn');
+  tb.style.display = dishSelectionMode ? 'flex' : 'none';
+  btn.textContent = dishSelectionMode ? '✕ Abbrechen' : '☑️ Auswählen';
+  renderDishes();
+}
+function selectAllDishes(){ selectedDishIds = new Set(dishes.map(d=>d.id)); updateDishSelCount(); renderDishes(); }
+function selectNoDishes(){ selectedDishIds.clear(); updateDishSelCount(); renderDishes(); }
+function updateDishSelCount(){
+  document.getElementById('dishSelCount').textContent = selectedDishIds.size + ' ausgewählt';
+}
+function exportSelectedDishes(){
+  if(!selectedDishIds.size){ showToast('Keine Gerichte ausgewählt.'); return; }
+  const selDishes = dishes.filter(d=>selectedDishIds.has(d.id));
+  // Also include all recipes referenced by selected dishes
+  const recipeIdSet = new Set(selDishes.flatMap(d=>d.recipeIds||[]));
+  const selRecipes = recipes.filter(r=>recipeIdSet.has(r.id));
+  downloadFile(JSON.stringify({version:2, recipes:selRecipes, dishes:selDishes, tagGroups},null,2),
+    'gerichte-auswahl-'+new Date().toISOString().slice(0,10)+'.json');
+  showToast(`✓ ${selDishes.length} Gerichte + ${selRecipes.length} Rezepte exportiert`);
+  toggleDishSelection();
+}
+
 Object.assign(window, {
   openSettings, saveSettings, resetApp, toggleSort, switchTab,
   openAdd, openEdit, saveRecipe, openDetail, delRecipe,
@@ -1523,6 +1575,7 @@ Object.assign(window, {
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
   openDishEditor, saveDish, deleteDish, searchDishRecipes, openOrderList, copyOrderList,
+  toggleDishSelection, selectAllDishes, selectNoDishes, exportSelectedDishes,
   addTagGroup, removeTagGroup, renameTagGroup, addTagToGroup, removeTagFromGroup,
 });
 </script>
