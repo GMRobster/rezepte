@@ -156,7 +156,37 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
   border-radius:6px;padding:3px 9px;font-size:.76rem;font-weight:700;opacity:0;transition:opacity .25s;margin-top:7px}
 .copied.on{opacity:1}
 
-/* TOAST */
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px}
+.tab-btn{padding:10px 22px;border:none;background:none;font-family:'Lato',sans-serif;font-size:.88rem;font-weight:700;color:var(--brown);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .18s}
+.tab-btn.active{color:var(--amber);border-bottom-color:var(--amber)}
+.tab-btn:hover:not(.active){color:var(--ink)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* TAG GROUPS in filter */
+.cat-group{margin-bottom:12px}
+.cat-group-label{font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--brown);opacity:.6;margin-bottom:5px;display:block}
+.cat-group .cats{margin-bottom:0}
+
+/* MENU CARDS */
+.menu-card{background:var(--warm);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .22s;box-shadow:0 2px 8px var(--sh);animation:fadeIn .28s ease}
+.menu-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px var(--sh);border-color:var(--amber2)}
+.menu-card-head{background:linear-gradient(135deg,var(--amber),var(--brown));padding:18px;color:white}
+.menu-card-head h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:4px}
+.menu-card-head p{font-size:.78rem;opacity:.85}
+.menu-card-body{padding:13px}
+.menu-recipe-link{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.88rem;cursor:pointer;transition:color .15s}
+.menu-recipe-link:last-child{border-bottom:none}
+.menu-recipe-link:hover{color:var(--amber)}
+.menu-recipe-link .link-em{font-size:1.2rem;width:28px;text-align:center}
+.menu-recipe-link .link-title{flex:1}
+.menu-recipe-link .link-arr{opacity:.35;font-size:.8rem}
+
+/* TAG GROUP EDITOR */
+.tg-group-row{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--pale);border-radius:10px;margin-bottom:8px}
+.tg-group-row .tg-name{font-weight:700;font-size:.88rem;min-width:90px;padding-top:3px}
+.tg-tags{display:flex;flex-wrap:wrap;gap:5px;flex:1}
+
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(16px);
   background:var(--ink);color:white;padding:9px 18px;border-radius:10px;font-size:.83rem;
   z-index:999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
@@ -200,24 +230,40 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
       <button class="btn btn-g btn-sm" onclick="document.getElementById('fileImport').click()">📥 Import</button>
       <button class="btn btn-g btn-sm" onclick="exportAll()">📤 Export</button>
       <button class="btn btn-g btn-sm" id="selBtn" onclick="toggleSelectionMode()">☑️ Auswählen</button>
-      <button class="btn btn-p" onclick="openAdd()">+ Neues Rezept</button>
+      <button class="btn btn-p" id="addBtn" onclick="openAdd()">+ Neues Rezept</button>
     </div>
   </header>
 
-  <div id="selToolbar" style="display:none;background:var(--pale);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
-    <span id="selCount" style="font-size:.85rem;color:var(--brown);flex:1">0 ausgewählt</span>
-    <button class="btn btn-g btn-sm" onclick="selectAll()">Alle</button>
-    <button class="btn btn-g btn-sm" onclick="selectNone()">Keine</button>
-    <button class="btn btn-p btn-sm" onclick="exportSelected()">📤 Auswahl exportieren</button>
-    <button class="btn btn-g btn-sm" onclick="toggleSelectionMode()">✕ Abbrechen</button>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabRecipes" onclick="switchTab('recipes')">📋 Rezepte</button>
+    <button class="tab-btn" id="tabMenus" onclick="switchTab('menus')">🍽️ Menüs</button>
   </div>
 
-  <div class="toolbar">
-    <div class="srch"><input type="text" id="search" placeholder="Rezept suchen…" oninput="render()"></div>
+  <!-- REZEPTE TAB -->
+  <div class="tab-pane active" id="paneRecipes">
+    <div id="selToolbar" style="display:none;background:var(--pale);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="selCount" style="font-size:.85rem;color:var(--brown);flex:1">0 ausgewählt</span>
+      <button class="btn btn-g btn-sm" onclick="selectAll()">Alle</button>
+      <button class="btn btn-g btn-sm" onclick="selectNone()">Keine</button>
+      <button class="btn btn-p btn-sm" onclick="exportSelected()">📤 Auswahl exportieren</button>
+      <button class="btn btn-g btn-sm" onclick="toggleSelectionMode()">✕ Abbrechen</button>
+    </div>
+    <div class="toolbar">
+      <div class="srch"><input type="text" id="search" placeholder="Rezept suchen…" oninput="render()"></div>
+    </div>
+    <div id="cats"></div>
+    <p class="cnt" id="cnt"></p>
+    <div class="grid" id="grid"></div>
   </div>
-  <div class="cats" id="cats"></div>
-  <p class="cnt" id="cnt"></p>
-  <div class="grid" id="grid"></div>
+
+  <!-- MENÜS TAB -->
+  <div class="tab-pane" id="paneMenus">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:18px">
+      <button class="btn btn-p" onclick="openMenuEditor()">+ Neues Menü</button>
+    </div>
+    <div class="grid" id="menuGrid"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -230,6 +276,14 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
     <h2>⚙️ Einstellungen</h2>
     <div class="sfield">
       <div><label>Dein Name</label><input type="text" id="stName" maxlength="30"></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    <p style="font-size:.73rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--brown);margin-bottom:10px">Tag-Gruppen</p>
+    <p style="font-size:.78rem;color:var(--brown);opacity:.8;margin-bottom:10px;line-height:1.5">Fasse Tags zu Gruppen zusammen – sie werden dann im Filter gruppiert angezeigt.</p>
+    <div id="tagGroupsList"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input type="text" id="newGroupName" placeholder="Gruppenname (z.B. Gang)" style="flex:1;font-size:.85rem">
+      <button class="btn btn-g btn-sm" onclick="addTagGroup()">+ Gruppe</button>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
     <p style="font-size:.73rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--brown);margin-bottom:10px">Import / Export</p>
@@ -245,6 +299,45 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
       <button class="btn btn-d btn-sm" onclick="resetApp()">Zurücksetzen</button>
       <button class="btn btn-p" onclick="saveSettings()">Speichern</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ MENU EDITOR ══ -->
+<div class="ov" id="ovMenuEditor">
+  <div class="modal">
+    <button class="mcl" onclick="closeOv('ovMenuEditor')">✕</button>
+    <h2 id="menuEditorTitle">Neues Menü</h2>
+    <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:16px">
+      <div>
+        <label>Name *</label>
+        <input type="text" id="meName" placeholder="z.B. Weihnachtsmenü 2024">
+      </div>
+      <div>
+        <label>Beschreibung</label>
+        <input type="text" id="meDesc" placeholder="z.B. 4 Gänge für 6 Personen">
+      </div>
+    </div>
+    <label style="margin-bottom:10px;display:block">Rezepte (in Reihenfolge)</label>
+    <div id="meRecipeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
+    <div style="position:relative;margin-bottom:16px">
+      <input type="text" id="meRecipeSearch" placeholder="Rezept suchen und hinzufügen…"
+        oninput="searchMenuRecipes(this.value)" autocomplete="off"
+        style="width:100%;padding-right:36px">
+      <div id="meRecipeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:white;border:1.5px solid var(--amber);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px var(--sh)"></div>
+    </div>
+    <div class="fa">
+      <button class="btn btn-g" onclick="closeOv('ovMenuEditor')">Abbrechen</button>
+      <button class="btn btn-d btn-sm" id="meDeleteBtn" style="display:none" onclick="deleteMenu()">🗑 Löschen</button>
+      <button class="btn btn-p" onclick="saveMenu()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MENU DETAIL ══ -->
+<div class="ov" id="ovMenuDetail">
+  <div class="modal">
+    <button class="mcl" onclick="closeOv('ovMenuDetail')">✕</button>
+    <div id="menuDetailBody"></div>
   </div>
 </div>
 
@@ -355,10 +448,15 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 <script>
 // ══ STATE & STORAGE ══
 let recipes = [];
+let menus = [];       // [{id, name, desc, recipeIds:[]}]
+let tagGroups = [];   // [{id, name, tags:[]}]
 let editId = null;
+let editMenuId = null;
+let menuRecipes = []; // recipe ids currently being edited in menu
 let currentTags = [];
 let activeCats = new Set();
 let sortOrder = 'az';
+let currentTab = 'recipes';
 let currentShareRecipe = null;
 let currentShareText = '';
 let deferredInstallPrompt = null;
@@ -375,9 +473,17 @@ const ls = {
 
 function loadRecipes(){
   try{ recipes = JSON.parse(ls.get('rz_recipes')||'[]'); }catch{ recipes=[]; }
+  try{ menus = JSON.parse(ls.get('rz_menus')||'[]'); }catch{ menus=[]; }
+  try{ tagGroups = JSON.parse(ls.get('rz_taggroups')||'[]'); }catch{ tagGroups=[]; }
 }
 function saveRecipes(){
   ls.set('rz_recipes', JSON.stringify(recipes));
+}
+function saveMenus(){
+  ls.set('rz_menus', JSON.stringify(menus));
+}
+function saveTagGroups(){
+  ls.set('rz_taggroups', JSON.stringify(tagGroups));
 }
 function getName(){ return ls.get('rz_name')||''; }
 
@@ -415,6 +521,7 @@ document.addEventListener('keydown', e=>{
 // ══ SETTINGS ══
 function openSettings(){
   document.getElementById('stName').value = getName();
+  renderTagGroupsEditor();
   openOv('ovSettings');
 }
 function saveSettings(){
@@ -423,14 +530,78 @@ function saveSettings(){
   document.getElementById('chipName').textContent = n || 'Einstellungen';
   closeOv('ovSettings');
   showToast('✓ Gespeichert');
+  render();
 }
 function resetApp(){
-  if(!confirm('Alle Rezepte und Einstellungen löschen?\nDiese Aktion kann nicht rückgängig gemacht werden!')) return;
-  ['rz_recipes','rz_name'].forEach(k=>ls.del(k));
-  recipes=[];
-  closeOv('ovSettings');
-  render();
+  if(!confirm('Alle Rezepte, Menüs und Einstellungen löschen?\nDiese Aktion kann nicht rückgängig gemacht werden!')) return;
+  ['rz_recipes','rz_name','rz_menus','rz_taggroups'].forEach(k=>ls.del(k));
+  recipes=[]; menus=[]; tagGroups=[];
+  closeOv('ovSettings'); render(); renderMenus();
   showToast('Zurückgesetzt.');
+}
+
+// ══ TAG GROUPS ══
+function renderTagGroupsEditor(){
+  const el = document.getElementById('tagGroupsList');
+  if(!el) return;
+  if(!tagGroups.length){ el.innerHTML='<p style="font-size:.8rem;color:var(--brown);opacity:.6;margin-bottom:10px">Noch keine Gruppen angelegt.</p>'; return; }
+
+  // Collect all existing tags for suggestions
+  const allTags = [...new Set(recipes.flatMap(r=>getRCats(r)))].sort((a,b)=>a.localeCompare(b,'de'));
+
+  el.innerHTML = tagGroups.map((g,gi)=>`
+    <div class="tg-group-row">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <input type="text" value="${esc(g.name)}" data-gi="${gi}" class="tg-name-input"
+            style="font-weight:700;font-size:.88rem;border:1px solid var(--border);border-radius:6px;padding:3px 8px;background:white;outline:none;width:120px"
+            onchange="renameTagGroup(${gi},this.value)">
+          <button class="btn btn-d btn-sm" style="padding:3px 8px" onclick="removeTagGroup(${gi})">✕</button>
+        </div>
+        <div class="tg-tags" id="tgTags${gi}">
+          ${g.tags.map((t,ti)=>`<span class="tag-chip" style="font-size:.75rem">${esc(t)}<button type="button" onclick="removeTagFromGroup(${gi},${ti})">×</button></span>`).join('')}
+        </div>
+        <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+          ${allTags.filter(t=>!g.tags.includes(t)).slice(0,8).map(t=>
+            `<button type="button" class="cat" style="font-size:.7rem;padding:2px 8px" onclick="addTagToGroup(${gi},'${t.replace(/'/g,"\\'")}')">+${esc(t)}</button>`
+          ).join('')}
+        </div>
+        <div style="margin-top:5px;display:flex;gap:6px">
+          <input type="text" placeholder="Tag eingeben + Enter" data-gi="${gi}" class="tg-tag-input"
+            style="font-size:.8rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:white;outline:none;flex:1"
+            onkeydown="if(event.key==='Enter'&&this.value.trim()){addTagToGroup(${gi},this.value.trim());this.value='';renderTagGroupsEditor();}">
+        </div>
+      </div>
+    </div>`).join('');
+}
+function addTagGroup(){
+  const inp = document.getElementById('newGroupName');
+  const name = inp.value.trim();
+  if(!name) return;
+  if(tagGroups.some(g=>g.name===name)){ showToast('Gruppe existiert bereits.'); return; }
+  tagGroups.push({id:uid(), name, tags:[]});
+  saveTagGroups(); inp.value='';
+  renderTagGroupsEditor();
+}
+function removeTagGroup(gi){ tagGroups.splice(gi,1); saveTagGroups(); renderTagGroupsEditor(); render(); }
+function renameTagGroup(gi, name){ tagGroups[gi].name=name; saveTagGroups(); }
+function addTagToGroup(gi, tag){
+  if(!tagGroups[gi].tags.includes(tag)) tagGroups[gi].tags.push(tag);
+  saveTagGroups(); renderTagGroupsEditor();
+}
+function removeTagFromGroup(gi, ti){ tagGroups[gi].tags.splice(ti,1); saveTagGroups(); renderTagGroupsEditor(); }
+
+// ══ TABS ══
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('paneRecipes').classList.toggle('active', tab==='recipes');
+  document.getElementById('paneMenus').classList.toggle('active', tab==='menus');
+  document.getElementById('tabRecipes').classList.toggle('active', tab==='recipes');
+  document.getElementById('tabMenus').classList.toggle('active', tab==='menus');
+  document.getElementById('addBtn').style.display = tab==='recipes' ? '' : 'none';
+  document.getElementById('sortBtn').style.display = tab==='recipes' ? '' : 'none';
+  document.getElementById('selBtn').style.display = tab==='recipes' ? '' : 'none';
+  if(tab==='menus') renderMenus();
 }
 
 // ══ SORT ══
@@ -451,22 +622,50 @@ function render(){
   const cats = [...catSet].sort((a,b)=>a.localeCompare(b,'de'));
 
   const catsEl = document.getElementById('cats');
-  catsEl.innerHTML = cats.map(c =>
-    `<button class="cat${activeCats.has(c)?' on':''}" data-cat="${esc(c)}">${esc(c)}</button>`
-  ).join('');
+  catsEl.innerHTML = '';
+
+  // Build grouped display
+  const assignedTags = new Set(tagGroups.flatMap(g=>g.tags));
+  const ungrouped = cats.filter(c=>!assignedTags.has(c));
+
+  const renderCatButtons = (list, container) => {
+    list.forEach(c=>{
+      const btn = document.createElement('button');
+      btn.className = 'cat'+(activeCats.has(c)?' on':'');
+      btn.dataset.cat = c;
+      btn.textContent = c;
+      btn.addEventListener('click',()=>{ activeCats.has(c)?activeCats.delete(c):activeCats.add(c); render(); });
+      container.appendChild(btn);
+    });
+  };
+
+  // Render groups
+  tagGroups.forEach(g=>{
+    const inGroup = g.tags.filter(t=>catSet.has(t));
+    if(!inGroup.length) return;
+    const div = document.createElement('div'); div.className='cat-group';
+    const lbl = document.createElement('span'); lbl.className='cat-group-label'; lbl.textContent=g.name;
+    const row = document.createElement('div'); row.className='cats';
+    renderCatButtons(inGroup, row);
+    div.appendChild(lbl); div.appendChild(row);
+    catsEl.appendChild(div);
+  });
+
+  // Ungrouped tags
+  if(ungrouped.length){
+    const row = document.createElement('div'); row.className='cats';
+    renderCatButtons(ungrouped, row);
+    catsEl.appendChild(row);
+  }
+
+  // Clear button
   if(activeCats.size){
     const cl = document.createElement('button');
     cl.className='cat cat-clear'; cl.textContent='✕ Filter löschen';
     cl.onclick=()=>{ activeCats.clear(); render(); };
-    catsEl.appendChild(cl);
+    const row = document.createElement('div'); row.className='cats';
+    row.appendChild(cl); catsEl.appendChild(row);
   }
-  catsEl.querySelectorAll('.cat[data-cat]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const c=btn.dataset.cat;
-      activeCats.has(c)?activeCats.delete(c):activeCats.add(c);
-      render();
-    });
-  });
 
   let list = recipes.filter(r=>{
     const rCats = getRCats(r);
@@ -863,6 +1062,130 @@ function parseRezeImport(text){
   return imported;
 }
 
+// ══ MENUS ══
+function renderMenus(){
+  const el = document.getElementById('menuGrid');
+  if(!el) return;
+  if(!menus.length){
+    el.innerHTML=`<div class="empty" style="grid-column:1/-1">
+      <div class="bi">🍽️</div>
+      <h3>Noch keine Menüs</h3>
+      <p>Fasse Rezepte zu einem Gericht oder Menü zusammen.</p>
+    </div>`; return;
+  }
+  el.innerHTML='';
+  menus.forEach(m=>{
+    const linkedRecipes = (m.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+    const card = document.createElement('div'); card.className='menu-card';
+    card.innerHTML=`
+      <div class="menu-card-head">
+        <h3>${esc(m.name)}</h3>
+        ${m.desc?`<p>${esc(m.desc)}</p>`:''}
+      </div>
+      <div class="menu-card-body">
+        ${linkedRecipes.length
+          ? linkedRecipes.map(r=>`
+              <div class="menu-recipe-link" data-rid="${esc(r.id)}">
+                <span class="link-em">${esc(r.emoji||'📋')}</span>
+                <span class="link-title">${esc(r.title)}</span>
+                <span class="link-arr">→</span>
+              </div>`).join('')
+          : '<p style="font-size:.82rem;color:var(--brown);opacity:.6">Keine Rezepte verknüpft.</p>'
+        }
+        <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+          <button class="btn btn-g btn-sm" data-edit="${esc(m.id)}">✏️ Bearbeiten</button>
+        </div>
+      </div>`;
+    // Click on recipe links → open recipe detail
+    card.querySelectorAll('.menu-recipe-link[data-rid]').forEach(lnk=>{
+      lnk.addEventListener('click', e=>{ e.stopPropagation(); openDetail(lnk.dataset.rid); });
+    });
+    // Edit button
+    card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openMenuEditor(m.id); });
+    el.appendChild(card);
+  });
+}
+
+function openMenuEditor(menuId=null){
+  editMenuId = menuId;
+  const m = menuId ? menus.find(x=>x.id===menuId) : null;
+  document.getElementById('menuEditorTitle').textContent = m ? 'Menü bearbeiten' : 'Neues Menü';
+  document.getElementById('meName').value = m?.name||'';
+  document.getElementById('meDesc').value = m?.desc||'';
+  document.getElementById('meDeleteBtn').style.display = m ? '' : 'none';
+  menuRecipes = m ? [...(m.recipeIds||[])] : [];
+  renderMenuRecipeList();
+  document.getElementById('meRecipeSearch').value='';
+  document.getElementById('meRecipeSuggestions').style.display='none';
+  openOv('ovMenuEditor');
+}
+
+function renderMenuRecipeList(){
+  const el = document.getElementById('meRecipeList');
+  if(!menuRecipes.length){ el.innerHTML='<p style="font-size:.8rem;color:var(--brown);opacity:.6">Noch keine Rezepte hinzugefügt.</p>'; return; }
+  el.innerHTML='';
+  menuRecipes.forEach((id,i)=>{
+    const r = recipes.find(x=>x.id===id);
+    if(!r) return;
+    const row = document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--pale);border-radius:8px;font-size:.88rem';
+    row.innerHTML=`<span style="font-size:1.1rem">${esc(r.emoji||'📋')}</span>
+      <span style="flex:1">${esc(r.title)}</span>
+      ${i>0?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-up="${i}">↑</button>`:''}
+      ${i<menuRecipes.length-1?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-dn="${i}">↓</button>`:''}
+      <button class="btn btn-d btn-sm" style="padding:2px 7px" data-rm="${i}">✕</button>`;
+    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ menuRecipes.splice(i,1); renderMenuRecipeList(); });
+    row.querySelector('[data-up]')?.addEventListener('click',()=>{ [menuRecipes[i-1],menuRecipes[i]]=[menuRecipes[i],menuRecipes[i-1]]; renderMenuRecipeList(); });
+    row.querySelector('[data-dn]')?.addEventListener('click',()=>{ [menuRecipes[i],menuRecipes[i+1]]=[menuRecipes[i+1],menuRecipes[i]]; renderMenuRecipeList(); });
+    el.appendChild(row);
+  });
+}
+
+function searchMenuRecipes(q){
+  const box = document.getElementById('meRecipeSuggestions');
+  if(!q.trim()){ box.style.display='none'; return; }
+  const matches = recipes.filter(r=>
+    (r.title||'').toLowerCase().includes(q.toLowerCase()) && !menuRecipes.includes(r.id)
+  ).slice(0,8);
+  if(!matches.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML = matches.map(r=>`
+    <div data-id="${esc(r.id)}" style="padding:9px 13px;cursor:pointer;display:flex;align-items:center;gap:9px;font-size:.88rem;border-bottom:1px solid var(--border)">
+      <span>${esc(r.emoji||'📋')}</span><span>${esc(r.title)}</span>
+    </div>`).join('');
+  box.querySelectorAll('[data-id]').forEach(row=>{
+    row.addEventListener('click',()=>{
+      menuRecipes.push(row.dataset.id);
+      renderMenuRecipeList();
+      document.getElementById('meRecipeSearch').value='';
+      box.style.display='none';
+    });
+    row.addEventListener('mouseover',()=>row.style.background=`var(--pale)`);
+    row.addEventListener('mouseout',()=>row.style.background='');
+  });
+}
+
+function saveMenu(){
+  const name = document.getElementById('meName').value.trim();
+  if(!name){ showToast('Bitte einen Namen eingeben.'); return; }
+  const data = { name, desc: document.getElementById('meDesc').value.trim(), recipeIds: [...menuRecipes] };
+  if(editMenuId){
+    const i = menus.findIndex(m=>m.id===editMenuId);
+    menus[i] = {...menus[i], ...data};
+  } else {
+    menus.unshift({id:uid(), ...data});
+  }
+  saveMenus(); closeOv('ovMenuEditor'); renderMenus();
+  showToast(editMenuId?'✓ Menü aktualisiert!':'✓ Menü gespeichert!');
+}
+
+function deleteMenu(){
+  if(!editMenuId || !confirm('Menü wirklich löschen?')) return;
+  menus = menus.filter(m=>m.id!==editMenuId);
+  saveMenus(); closeOv('ovMenuEditor'); renderMenus();
+  showToast('Menü gelöscht.');
+}
+
 // ══ SELECTION MODE ══
 function toggleSelectionMode(){
   selectionMode = !selectionMode;
@@ -995,7 +1318,7 @@ checkUrlImport();
 
 // Expose functions globally for inline onclick handlers
 Object.assign(window, {
-  openSettings, saveSettings, resetApp, toggleSort,
+  openSettings, saveSettings, resetApp, toggleSort, switchTab,
   openAdd, openEdit, saveRecipe, openDetail, delRecipe,
   openShareModal, shareVia, nativeShare, copyShareText, copyLink, exportSingle,
   exportAll, handleImport,
@@ -1003,6 +1326,8 @@ Object.assign(window, {
   updateCatSuggestions, handleTagKey,
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
+  openMenuEditor, saveMenu, deleteMenu, searchMenuRecipes,
+  addTagGroup, removeTagGroup, renameTagGroup, addTagToGroup, removeTagFromGroup,
 });
 </script>
 </body>
