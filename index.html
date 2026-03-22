@@ -397,12 +397,20 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
       </div>
     </div>
     <label style="margin-bottom:10px;display:block">Rezepte (in Reihenfolge)</label>
-    <div id="dishRecipeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
-    <div style="position:relative;margin-bottom:16px">
-      <input type="text" id="dishRecipeSearch" placeholder="Rezept suchen und hinzufügen…"
-        oninput="searchDishRecipes(this.value)" autocomplete="off"
-        style="width:100%;padding-right:36px">
-      <div id="dishRecipeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:white;border:1.5px solid var(--amber);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px var(--sh)"></div>
+    <div id="dishRecipeList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-height:40px"></div>
+
+    <!-- Category browser + search -->
+    <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px;background:var(--cream)">
+      <!-- Search bar -->
+      <div style="position:relative;margin-bottom:10px">
+        <input type="text" id="dishRecipeSearch" placeholder="🔍 Rezept suchen…"
+          oninput="updateDishRecipeBrowser()" onfocus="updateDishRecipeBrowser()"
+          autocomplete="off" style="width:100%;padding-left:12px">
+      </div>
+      <!-- Category filter chips -->
+      <div id="dishCatFilter" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px"></div>
+      <!-- Recipe results -->
+      <div id="dishRecipeBrowser" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
     </div>
     <div class="fa">
       <button class="btn btn-g" onclick="closeOv('ovDishEditor')">Abbrechen</button>
@@ -559,6 +567,7 @@ let selectionMode = false;
 let selectedIds = new Set();
 let dishSelectionMode = false;
 let selectedDishIds = new Set();
+let activeDishEditorCat = ''; // active category filter in dish editor
 let menuSelectionMode = false;
 let selectedMenuIds = new Set();
 let editMenuId = null;
@@ -1379,9 +1388,10 @@ function openDishEditor(menuId=null){
   document.getElementById('dishDesc').value = m?.desc||'';
   document.getElementById('dishDeleteBtn').style.display = m ? '' : 'none';
   dishRecipes = m ? [...(m.recipeIds||[])] : [];
+  activeDishEditorCat = '';
   renderDishRecipeList();
   document.getElementById('dishRecipeSearch').value='';
-  document.getElementById('dishRecipeSuggestions').style.display='none';
+  updateDishRecipeBrowser();
   openOv('ovDishEditor');
 }
 
@@ -1396,39 +1406,97 @@ function renderDishRecipeList(){
     row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--pale);border-radius:8px;font-size:.88rem';
     row.innerHTML=`<span style="font-size:1.1rem">${esc(r.emoji||'📋')}</span>
       <span style="flex:1">${esc(r.title)}</span>
+      <span style="font-size:.72rem;color:var(--brown);opacity:.6">${getRCats(r).join(', ')}</span>
       ${i>0?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-up="${i}">↑</button>`:''}
       ${i<dishRecipes.length-1?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-dn="${i}">↓</button>`:''}
       <button class="btn btn-d btn-sm" style="padding:2px 7px" data-rm="${i}">✕</button>`;
-    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ dishRecipes.splice(i,1); renderDishRecipeList(); });
+    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ dishRecipes.splice(i,1); renderDishRecipeList(); updateDishRecipeBrowser(); });
     row.querySelector('[data-up]')?.addEventListener('click',()=>{ [dishRecipes[i-1],dishRecipes[i]]=[dishRecipes[i],dishRecipes[i-1]]; renderDishRecipeList(); });
     row.querySelector('[data-dn]')?.addEventListener('click',()=>{ [dishRecipes[i],dishRecipes[i+1]]=[dishRecipes[i+1],dishRecipes[i]]; renderDishRecipeList(); });
     el.appendChild(row);
   });
 }
 
-function searchDishRecipes(q){
-  const box = document.getElementById('dishRecipeSuggestions');
-  if(!q.trim()){ box.style.display='none'; return; }
-  const matches = recipes.filter(r=>
-    (r.title||'').toLowerCase().includes(q.toLowerCase()) && !dishRecipes.includes(r.id)
-  ).slice(0,8);
-  if(!matches.length){ box.style.display='none'; return; }
-  box.style.display='block';
-  box.innerHTML = matches.map(r=>`
-    <div data-id="${esc(r.id)}" style="padding:9px 13px;cursor:pointer;display:flex;align-items:center;gap:9px;font-size:.88rem;border-bottom:1px solid var(--border)">
-      <span>${esc(r.emoji||'📋')}</span><span>${esc(r.title)}</span>
-    </div>`).join('');
-  box.querySelectorAll('[data-id]').forEach(row=>{
-    row.addEventListener('click',()=>{
-      dishRecipes.push(row.dataset.id);
-      renderDishRecipeList();
-      document.getElementById('dishRecipeSearch').value='';
-      box.style.display='none';
+function updateDishRecipeBrowser(){
+  const q = (document.getElementById('dishRecipeSearch')?.value||'').toLowerCase().trim();
+
+  // Build category chips
+  const catSet = new Set();
+  recipes.forEach(r=>getRCats(r).forEach(c=>c&&catSet.add(c)));
+  const cats = [...catSet].sort((a,b)=>a.localeCompare(b,'de'));
+
+  const catEl = document.getElementById('dishCatFilter');
+  catEl.innerHTML = '';
+  // "Alle" chip
+  const allBtn = document.createElement('button');
+  allBtn.type='button';
+  allBtn.className='cat'+(activeDishEditorCat===''?' on':'');
+  allBtn.textContent='Alle';
+  allBtn.addEventListener('click',()=>{ activeDishEditorCat=''; updateDishRecipeBrowser(); });
+  catEl.appendChild(allBtn);
+
+  // Group by tagGroups like main filter
+  const assignedTags = new Set(tagGroups.flatMap(g=>g.tags));
+  const grouped = [];
+  tagGroups.forEach(g=>{
+    const inGroup = g.tags.filter(t=>catSet.has(t));
+    if(inGroup.length) grouped.push({label: g.name+':', tags: inGroup});
+  });
+  const ungrouped = cats.filter(c=>!assignedTags.has(c));
+  if(ungrouped.length) grouped.push({label: null, tags: ungrouped});
+
+  grouped.forEach(({label, tags})=>{
+    if(label){
+      const lbl = document.createElement('span');
+      lbl.style.cssText='font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--brown);opacity:.55;align-self:center;margin:0 2px';
+      lbl.textContent=label;
+      catEl.appendChild(lbl);
+    }
+    tags.forEach(c=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className='cat'+(activeDishEditorCat===c?' on':'');
+      btn.textContent=c;
+      btn.addEventListener('click',()=>{ activeDishEditorCat=c; updateDishRecipeBrowser(); });
+      catEl.appendChild(btn);
     });
-    row.addEventListener('mouseover',()=>row.style.background=`var(--pale)`);
+  });
+
+  // Filter recipes
+  const filtered = recipes.filter(r=>{
+    const rCats = getRCats(r);
+    const mq = !q || (r.title||'').toLowerCase().includes(q) || rCats.join(' ').toLowerCase().includes(q);
+    const mc = !activeDishEditorCat || rCats.includes(activeDishEditorCat);
+    const notAdded = !dishRecipes.includes(r.id);
+    return mq && mc && notAdded;
+  }).sort((a,b)=>(a.title||'').localeCompare(b.title||'','de'));
+
+  const browserEl = document.getElementById('dishRecipeBrowser');
+  if(!filtered.length){
+    browserEl.innerHTML='<p style="font-size:.8rem;color:var(--brown);opacity:.6;padding:8px 4px">Keine Rezepte gefunden.</p>';
+    return;
+  }
+  browserEl.innerHTML='';
+  filtered.forEach(r=>{
+    const row = document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.88rem;transition:background .15s';
+    row.innerHTML=`<span style="font-size:1.1rem;width:26px;text-align:center">${esc(r.emoji||'📋')}</span>
+      <span style="flex:1">${esc(r.title)}</span>
+      <span style="font-size:.72rem;color:var(--brown);opacity:.6;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getRCats(r).join(', ')}</span>
+      <span style="color:var(--amber);font-size:1rem;flex-shrink:0">＋</span>`;
+    row.addEventListener('mouseover',()=>row.style.background='var(--pale)');
     row.addEventListener('mouseout',()=>row.style.background='');
+    row.addEventListener('click',()=>{
+      dishRecipes.push(r.id);
+      renderDishRecipeList();
+      updateDishRecipeBrowser();
+    });
+    browserEl.appendChild(row);
   });
 }
+
+// Keep for backwards compatibility with old onclick refs
+function searchDishRecipes(q){ updateDishRecipeBrowser(); }
 
 function saveDish(){
   const name = document.getElementById('dishName').value.trim();
@@ -1944,7 +2012,7 @@ Object.assign(window, {
   updateCatSuggestions, handleTagKey,
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
-  openDishEditor, saveDish, deleteDish, searchDishRecipes, openOrderList, copyOrderList,
+  openDishEditor, saveDish, deleteDish, searchDishRecipes, updateDishRecipeBrowser, openOrderList, copyOrderList,
   toggleDishSelection, selectAllDishes, selectNoDishes, exportSelectedDishes, shareDish,
   openMenuEditor, saveMenuEntry, deleteMenu, searchMenuDishes, shareMenu, openMenuOrderList, showAvailableDishes,
   toggleMenuSelection, selectAllMenus, selectNoMenus, exportSelectedMenus,
