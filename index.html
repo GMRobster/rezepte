@@ -331,11 +331,12 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
     </div>
     <label style="margin-bottom:10px;display:block">Gerichte (in Reihenfolge)</label>
     <div id="mnDishList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
-    <div style="position:relative;margin-bottom:16px">
+    <div style="position:relative;margin-bottom:8px">
       <input type="text" id="mnDishSearch" placeholder="Gericht suchen und hinzufügen…"
-        oninput="searchMenuDishes(this.value)" autocomplete="off" style="width:100%;padding-right:36px">
+        oninput="searchMenuDishes(this.value)" onfocus="showAvailableDishes()" autocomplete="off" style="width:100%;padding-right:36px">
       <div id="mnDishSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:white;border:1.5px solid var(--amber);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px var(--sh)"></div>
     </div>
+    <div id="mnAvailableDishes" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px"></div>
     <div class="fa">
       <button class="btn btn-g" onclick="closeOv('ovMenuEditor')">Abbrechen</button>
       <button class="btn btn-d btn-sm" id="mnDeleteBtn" style="display:none" onclick="deleteMenu()">🗑 Löschen</button>
@@ -1065,6 +1066,13 @@ function checkUrlImport(){
       history.replaceState(null,'', window.location.pathname);
       showImportPrompt(r);
     }catch{}
+  } else if(hash.startsWith('#importdish=')){
+    try{
+      const payload = JSON.parse(decodeURIComponent(escape(atob(hash.slice(12)))));
+      if(!payload?.dish) return;
+      history.replaceState(null,'', window.location.pathname);
+      showDishImportPrompt(payload);
+    }catch{}
   } else if(hash.startsWith('#importmenu=')){
     try{
       const payload = JSON.parse(decodeURIComponent(escape(atob(hash.slice(12)))));
@@ -1073,6 +1081,39 @@ function checkUrlImport(){
       showMenuImportPrompt(payload);
     }catch{}
   }
+}
+
+function showDishImportPrompt(payload){
+  const d = payload.dish;
+  const alreadyDish = dishes.some(x=>x.name===d.name);
+  const div = document.createElement('div');
+  div.className = 'ov on';
+  div.innerHTML = `
+    <div class="modal sm" style="text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:10px">🍽️</div>
+      <h2 style="margin-bottom:8px">${esc(d.name)}</h2>
+      ${d.desc?`<p style="font-size:.85rem;color:var(--brown);margin-bottom:6px">${esc(d.desc)}</p>`:''}
+      <p style="background:var(--pale);border-radius:8px;padding:10px;font-size:.85rem;margin:14px 0">
+        ${(payload.recipes||[]).length} verknüpfte Rezepte<br>
+        ${alreadyDish?'<strong>Dieses Gericht ist bereits in deiner Sammlung.</strong>':'Zu deiner Sammlung hinzufügen?'}
+      </p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        ${!alreadyDish?`<button class="btn btn-p" id="btnConfirmDishImport">✓ Importieren</button>`:''}
+        <button class="btn btn-g" id="btnDismissDishImport">${alreadyDish?'OK':'Abbrechen'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  div.querySelector('#btnDismissDishImport').onclick = ()=>div.remove();
+  if(!alreadyDish){
+    div.querySelector('#btnConfirmDishImport').onclick = ()=>{
+      let addedR=0;
+      (payload.recipes||[]).forEach(r=>{ if(!recipes.some(x=>x.title===r.title&&x.ingredients===r.ingredients)){ recipes.push({...r,id:r.id||uid()}); addedR++; } });
+      dishes.push({...d, id:d.id||uid()});
+      saveRecipes(); saveDishes(); render(); div.remove();
+      showToast(`✓ Gericht + ${addedR} Rezepte importiert!`, 3000);
+    };
+  }
+  div.addEventListener('click', e=>{ if(e.target===div) div.remove(); });
 }
 
 function showMenuImportPrompt(payload){
@@ -1304,8 +1345,9 @@ function renderDishes(){
               </div>`).join('')
           : '<p style="font-size:.82rem;color:var(--brown);opacity:.6">Keine Rezepte verknüpft.</p>'
         }
-        <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap">
           <button class="btn btn-g btn-sm" data-edit="${esc(m.id)}">✏️ Bearbeiten</button>
+          <button class="btn btn-g btn-sm" data-share="${esc(m.id)}">🔗 Teilen</button>
           <button class="btn btn-p btn-sm" data-order="${esc(m.id)}">🛒 Bestellliste</button>
         </div>
       </div>`;
@@ -1315,6 +1357,7 @@ function renderDishes(){
         lnk.addEventListener('click', e=>{ e.stopPropagation(); openDetail(lnk.dataset.rid); });
       });
       card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openDishEditor(m.id); });
+      card.querySelector('[data-share]').addEventListener('click', e=>{ e.stopPropagation(); shareDish(m.id); });
       card.querySelector('[data-order]').addEventListener('click', e=>{ e.stopPropagation(); openOrderList(m.id); });
     } else {
       // In selection mode, clicking card toggles selection
@@ -1705,6 +1748,7 @@ function openMenuEditor(menuId=null){
   renderMenuDishList();
   document.getElementById('mnDishSearch').value='';
   document.getElementById('mnDishSuggestions').style.display='none';
+  showAvailableDishes();
   openOv('ovMenuEditor');
 }
 
@@ -1723,10 +1767,29 @@ function renderMenuDishList(){
       ${i>0?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-up="${i}">↑</button>`:''}
       ${i<menuDishes.length-1?`<button class="btn btn-g btn-sm" style="padding:2px 7px" data-dn="${i}">↓</button>`:''}
       <button class="btn btn-d btn-sm" style="padding:2px 7px" data-rm="${i}">✕</button>`;
-    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ menuDishes.splice(i,1); renderMenuDishList(); });
+    row.querySelector('[data-rm]')?.addEventListener('click',()=>{ menuDishes.splice(i,1); renderMenuDishList(); showAvailableDishes(); });
     row.querySelector('[data-up]')?.addEventListener('click',()=>{ [menuDishes[i-1],menuDishes[i]]=[menuDishes[i],menuDishes[i-1]]; renderMenuDishList(); });
     row.querySelector('[data-dn]')?.addEventListener('click',()=>{ [menuDishes[i],menuDishes[i+1]]=[menuDishes[i+1],menuDishes[i]]; renderMenuDishList(); });
     el.appendChild(row);
+  });
+}
+
+function showAvailableDishes(){
+  const box = document.getElementById('mnAvailableDishes');
+  if(!box) return;
+  const available = dishes.filter(d=>!menuDishes.includes(d.id));
+  if(!available.length){ box.innerHTML='<span style="font-size:.78rem;color:var(--brown);opacity:.6">Alle Gerichte bereits hinzugefügt.</span>'; return; }
+  box.innerHTML = available.map(d=>
+    `<button type="button" class="cat" style="font-size:.76rem;padding:4px 11px" data-did="${esc(d.id)}">
+      🍽️ ${esc(d.name)} <small style="opacity:.6">${(d.recipeIds||[]).length} Rez.</small>
+    </button>`
+  ).join('');
+  box.querySelectorAll('[data-did]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      menuDishes.push(btn.dataset.did);
+      renderMenuDishList();
+      showAvailableDishes();
+    });
   });
 }
 
@@ -1773,6 +1836,20 @@ function deleteMenu(){
   menus = menus.filter(m=>m.id!==editMenuId);
   saveMenuEntries(); closeOv('ovMenuEditor'); renderMenus();
   showToast('Menü gelöscht.');
+}
+
+function shareDish(dishId){
+  const d = dishes.find(x=>x.id===dishId);
+  if(!d) return;
+  const linkedRecipes = (d.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+  const payload = { dish: d, recipes: linkedRecipes };
+  const link = APP_URL + '#importdish=' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  if(navigator.share){
+    navigator.share({ title: 'Gericht: '+d.name, text: 'Schau dir dieses Gericht an:', url: link })
+      .catch(e=>{ if(e.name!=='AbortError'){ navigator.clipboard.writeText(link); showToast('✓ Link kopiert!'); } });
+  } else {
+    navigator.clipboard.writeText(link).then(()=>showToast('✓ Gericht-Link kopiert!'));
+  }
 }
 
 function shareMenu(menuId){
@@ -1868,8 +1945,8 @@ Object.assign(window, {
   openPortions, changeMultiplier, setMultiplier,
   openOv, closeOv, installPWA,
   openDishEditor, saveDish, deleteDish, searchDishRecipes, openOrderList, copyOrderList,
-  toggleDishSelection, selectAllDishes, selectNoDishes, exportSelectedDishes,
-  openMenuEditor, saveMenuEntry, deleteMenu, searchMenuDishes, shareMenu, openMenuOrderList,
+  toggleDishSelection, selectAllDishes, selectNoDishes, exportSelectedDishes, shareDish,
+  openMenuEditor, saveMenuEntry, deleteMenu, searchMenuDishes, shareMenu, openMenuOrderList, showAvailableDishes,
   toggleMenuSelection, selectAllMenus, selectNoMenus, exportSelectedMenus,
   addTagGroup, removeTagGroup, renameTagGroup, addTagToGroup, removeTagFromGroup,
 });
