@@ -196,6 +196,21 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
 .variant-group{border:1.5px solid #c7d7fc;border-radius:12px;overflow:hidden;margin-bottom:4px}
 .variant-group-header{background:#e8f0fe;padding:7px 12px;font-size:.78rem;font-weight:700;color:#1a56db;display:flex;align-items:center;gap:8px}
 
+/* MISE EN PLACE */
+.mep-dish{margin-bottom:20px}
+.mep-dish-header{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--amber);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.mep-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:all .18s;border:1.5px solid var(--border);background:white;margin-bottom:6px;user-select:none}
+.mep-item:hover{border-color:var(--amber);background:var(--pale)}
+.mep-item.done{background:var(--pale);border-color:var(--green);opacity:.7}
+.mep-item.done .mep-check{background:var(--green);border-color:var(--green);color:white}
+.mep-item.done .mep-label{text-decoration:line-through;color:var(--brown)}
+.mep-check{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;transition:all .18s}
+.mep-label{flex:1;font-size:.92rem}
+.mep-cats{font-size:.72rem;color:var(--brown);opacity:.6}
+.mep-notes{background:var(--pale);border-radius:8px;padding:10px 13px;font-size:.84rem;color:var(--brown);line-height:1.6;margin-bottom:14px;white-space:pre-wrap}
+.mep-progress{height:6px;background:var(--border);border-radius:3px;margin-bottom:18px;overflow:hidden}
+.mep-progress-bar{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+
 /* ORDER LIST PRINT */
 @media print{
   .topbar,.tabs,.toolbar,.cats,.hdr-btns,.btn,.mcl{display:none!important}
@@ -328,6 +343,7 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
     <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:16px">
       <div><label>Name *</label><input type="text" id="mnName" placeholder="z.B. Weihnachtsmenü 2024"></div>
       <div><label>Beschreibung</label><input type="text" id="mnDesc" placeholder="z.B. 4 Gänge für 8 Personen, 24.12.2024"></div>
+      <div><label>Notizen</label><textarea id="mnNotes" placeholder="Anlass, besondere Hinweise, Zeitplan…" style="min-height:70px"></textarea></div>
     </div>
     <label style="margin-bottom:10px;display:block">Gerichte (in Reihenfolge)</label>
     <div id="mnDishList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px"></div>
@@ -394,6 +410,10 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
       <div>
         <label>Beschreibung</label>
         <input type="text" id="dishDesc" placeholder="z.B. 4 Gänge für 6 Personen">
+      </div>
+      <div>
+        <label>Notizen</label>
+        <textarea id="dishNotes" placeholder="Zeitplanung, besondere Hinweise, Mise-en-place…" style="min-height:70px"></textarea>
       </div>
     </div>
     <label style="margin-bottom:10px;display:block">Rezepte (in Reihenfolge)</label>
@@ -544,6 +564,22 @@ textarea{resize:vertical;min-height:88px;line-height:1.6}
       </div>
     </div>
     <div id="orderListBody"></div>
+  </div>
+</div>
+
+<!-- ══ MISE EN PLACE ══ -->
+<div class="ov" id="ovMep">
+  <div class="modal" style="max-width:640px">
+    <button class="mcl" onclick="closeOv('ovMep')">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px">
+      <h2 id="mepTitle">✅ Mise en Place</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g btn-sm" onclick="resetMep()">↺ Zurücksetzen</button>
+        <button class="btn btn-p btn-sm" onclick="copyMep()">📋 Kopieren</button>
+      </div>
+    </div>
+    <p id="mepSubtitle" style="font-size:.82rem;color:var(--brown);margin-bottom:18px"></p>
+    <div id="mepBody"></div>
   </div>
 </div>
 
@@ -1345,6 +1381,7 @@ function renderDishes(){
         ${m.desc?`<p>${esc(m.desc)}</p>`:''}
       </div>
       <div class="dish-card-body">
+        ${m.notes?`<div style="font-size:.8rem;color:var(--brown);background:var(--pale);border-radius:7px;padding:7px 10px;margin-bottom:10px;line-height:1.5;white-space:pre-wrap">${esc(m.notes)}</div>`:''}
         ${linkedRecipes.length
           ? linkedRecipes.map(r=>`
               <div class="dish-recipe-link" data-rid="${esc(r.id)}">
@@ -1386,6 +1423,7 @@ function openDishEditor(menuId=null){
   document.getElementById('dishEditorTitle').textContent = m ? 'Gericht bearbeiten' : 'Neues Gericht';
   document.getElementById('dishName').value = m?.name||'';
   document.getElementById('dishDesc').value = m?.desc||'';
+  document.getElementById('dishNotes').value = m?.notes||'';
   document.getElementById('dishDeleteBtn').style.display = m ? '' : 'none';
   dishRecipes = m ? [...(m.recipeIds||[])] : [];
   activeDishEditorCat = '';
@@ -1501,7 +1539,7 @@ function searchDishRecipes(q){ updateDishRecipeBrowser(); }
 function saveDish(){
   const name = document.getElementById('dishName').value.trim();
   if(!name){ showToast('Bitte einen Namen eingeben.'); return; }
-  const data = { name, desc: document.getElementById('dishDesc').value.trim(), recipeIds: [...dishRecipes] };
+  const data = { name, desc: document.getElementById('dishDesc').value.trim(), notes: document.getElementById('dishNotes').value.trim(), recipeIds: [...dishRecipes] };
   if(editDishId){
     const i = dishes.findIndex(m=>m.id===editDishId);
     dishes[i] = {...dishes[i], ...data};
@@ -1771,6 +1809,7 @@ function renderMenus(){
         ${m.desc?`<p>${esc(m.desc)}</p>`:''}
       </div>
       <div class="dish-card-body">
+        ${m.notes?`<div style="font-size:.8rem;color:var(--brown);background:var(--pale);border-radius:7px;padding:7px 10px;margin-bottom:10px;line-height:1.5;white-space:pre-wrap">${esc(m.notes)}</div>`:''}
         ${linkedDishes.length
           ? linkedDishes.map(d=>`
               <div class="dish-recipe-link" data-did="${esc(d.id)}">
@@ -1781,9 +1820,10 @@ function renderMenus(){
               </div>`).join('')
           : '<p style="font-size:.82rem;color:var(--brown);opacity:.6">Keine Gerichte verknüpft.</p>'
         }
-        <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap">
           <button class="btn btn-g btn-sm" data-edit="${esc(m.id)}">✏️ Bearbeiten</button>
           <button class="btn btn-g btn-sm" data-share="${esc(m.id)}">🔗 Teilen</button>
+          <button class="btn btn-s btn-sm" data-mep="${esc(m.id)}">✅ Mise en Place</button>
           <button class="btn btn-p btn-sm" data-order="${esc(m.id)}">🛒 Bestellliste</button>
         </div>
       </div>`;
@@ -1794,6 +1834,7 @@ function renderMenus(){
       });
       card.querySelector('[data-edit]').addEventListener('click', e=>{ e.stopPropagation(); openMenuEditor(m.id); });
       card.querySelector('[data-share]').addEventListener('click', e=>{ e.stopPropagation(); shareMenu(m.id); });
+      card.querySelector('[data-mep]').addEventListener('click', e=>{ e.stopPropagation(); openMep(m.id); });
       card.querySelector('[data-order]').addEventListener('click', e=>{ e.stopPropagation(); openMenuOrderList(m.id); });
     } else {
       card.addEventListener('click', ()=>{
@@ -1811,6 +1852,7 @@ function openMenuEditor(menuId=null){
   document.getElementById('menuEditorTitle').textContent = m ? 'Menü bearbeiten' : 'Neues Menü';
   document.getElementById('mnName').value = m?.name||'';
   document.getElementById('mnDesc').value = m?.desc||'';
+  document.getElementById('mnNotes').value = m?.notes||'';
   document.getElementById('mnDeleteBtn').style.display = m ? '' : 'none';
   menuDishes = m ? [...(m.dishIds||[])] : [];
   renderMenuDishList();
@@ -1888,7 +1930,7 @@ function searchMenuDishes(q){
 function saveMenuEntry(){
   const name = document.getElementById('mnName').value.trim();
   if(!name){ showToast('Bitte einen Namen eingeben.'); return; }
-  const data = { name, desc: document.getElementById('mnDesc').value.trim(), dishIds: [...menuDishes] };
+  const data = { name, desc: document.getElementById('mnDesc').value.trim(), notes: document.getElementById('mnNotes').value.trim(), dishIds: [...menuDishes] };
   if(editMenuId){
     const i = menus.findIndex(m=>m.id===editMenuId);
     menus[i] = {...menus[i], ...data};
@@ -2003,6 +2045,122 @@ function exportSelectedDishes(){
   toggleDishSelection();
 }
 
+// ══ MISE EN PLACE ══
+let mepState = {}; // { recipeId: bool } – checked state, persisted per menu
+
+function openMep(menuId){
+  const menu = menus.find(x=>x.id===menuId);
+  if(!menu) return;
+  const linkedDishes = (menu.dishIds||[]).map(id=>dishes.find(d=>d.id===id)).filter(Boolean);
+  const storageKey = 'rz_mep_'+menuId;
+  try{ mepState = JSON.parse(ls.get(storageKey)||'{}'); }catch{ mepState={}; }
+
+  document.getElementById('mepTitle').textContent = '✅ Mise en Place – '+menu.name;
+  document.getElementById('mepSubtitle').textContent = menu.desc||'';
+
+  renderMep(linkedDishes, storageKey);
+  openOv('ovMep');
+  // Store storageKey for reset/copy
+  document.getElementById('ovMep').dataset.key = storageKey;
+  document.getElementById('ovMep').dataset.menu = menuId;
+}
+
+function renderMep(linkedDishes, storageKey){
+  const body = document.getElementById('mepBody');
+  body.innerHTML = '';
+
+  // Count totals for progress bar
+  let total = 0, done = 0;
+  linkedDishes.forEach(d=>{
+    (d.recipeIds||[]).forEach(id=>{ total++; if(mepState[id]) done++; });
+  });
+
+  // Progress bar
+  const pct = total ? Math.round(done/total*100) : 0;
+  const progDiv = document.createElement('div');
+  progDiv.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--brown);margin-bottom:5px">
+      <span>${done} von ${total} Rezepten bereit</span>
+      <span style="font-weight:700;color:${pct===100?'var(--green)':'var(--amber)'}">${pct}%</span>
+    </div>
+    <div class="mep-progress"><div class="mep-progress-bar" style="width:${pct}%"></div></div>`;
+  body.appendChild(progDiv);
+
+  // Each dish as a section
+  linkedDishes.forEach(dish=>{
+    const linkedRecipes = (dish.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+    if(!linkedRecipes.length) return;
+
+    const section = document.createElement('div');
+    section.className = 'mep-dish';
+
+    const header = document.createElement('div');
+    header.className = 'mep-dish-header';
+    const allDone = linkedRecipes.every(r=>mepState[r.id]);
+    header.innerHTML = `<span>${allDone?'✅':'🍽️'}</span><span>${esc(dish.name)}</span>
+      ${dish.notes?`<span style="font-size:.72rem;font-weight:400;color:var(--brown);opacity:.7;margin-left:auto">${esc(dish.notes.split('\n')[0])}</span>`:''}`;
+    section.appendChild(header);
+
+    if(dish.notes){
+      const notesDiv = document.createElement('div');
+      notesDiv.className='mep-notes';
+      notesDiv.textContent=dish.notes;
+      section.appendChild(notesDiv);
+    }
+
+    linkedRecipes.forEach(r=>{
+      const item = document.createElement('div');
+      item.className = 'mep-item'+(mepState[r.id]?' done':'');
+      const rCats = getRCats(r);
+      item.innerHTML = `
+        <div class="mep-check">${mepState[r.id]?'✓':''}</div>
+        <span style="font-size:1.2rem">${esc(r.emoji||'📋')}</span>
+        <div style="flex:1;min-width:0">
+          <div class="mep-label">${esc(r.title)}</div>
+          ${rCats.length?`<div class="mep-cats">${rCats.join(' · ')}</div>`:''}
+        </div>
+        ${r.time?`<span style="font-size:.75rem;color:var(--brown);opacity:.6">⏱ ${esc(r.time)}</span>`:''}`;
+      item.addEventListener('click',()=>{
+        mepState[r.id] = !mepState[r.id];
+        ls.set(storageKey, JSON.stringify(mepState));
+        renderMep(linkedDishes, storageKey);
+      });
+      // Clicking the recipe title opens detail
+      item.addEventListener('dblclick', e=>{ e.stopPropagation(); openDetail(r.id); });
+      section.appendChild(item);
+    });
+    body.appendChild(section);
+  });
+}
+
+function resetMep(){
+  const key = document.getElementById('ovMep').dataset.key;
+  const menuId = document.getElementById('ovMep').dataset.menu;
+  mepState = {};
+  ls.del(key);
+  const menu = menus.find(x=>x.id===menuId);
+  const linkedDishes = (menu.dishIds||[]).map(id=>dishes.find(d=>d.id===id)).filter(Boolean);
+  renderMep(linkedDishes, key);
+  showToast('Liste zurückgesetzt.');
+}
+
+function copyMep(){
+  const menuId = document.getElementById('ovMep').dataset.menu;
+  const menu = menus.find(x=>x.id===menuId);
+  const linkedDishes = (menu.dishIds||[]).map(id=>dishes.find(d=>d.id===id)).filter(Boolean);
+  let text = '✅ Mise en Place – '+menu.name+'\n\n';
+  linkedDishes.forEach(d=>{
+    const recs = (d.recipeIds||[]).map(id=>recipes.find(r=>r.id===id)).filter(Boolean);
+    if(!recs.length) return;
+    text += '🍽️ '+d.name+'\n';
+    if(d.notes) text += d.notes+'\n';
+    recs.forEach(r=>{ text += (mepState[r.id]?'[✓] ':'[ ] ')+(r.emoji||'')+ ' '+r.title+'\n'; });
+    text += '\n';
+  });
+  try{ navigator.clipboard.writeText(text.trim()); }catch{}
+  showToast('✓ Liste kopiert!');
+}
+
 Object.assign(window, {
   openSettings, saveSettings, resetApp, toggleSort, switchTab,
   openAdd, openEdit, saveRecipe, openDetail, delRecipe,
@@ -2016,6 +2174,7 @@ Object.assign(window, {
   toggleDishSelection, selectAllDishes, selectNoDishes, exportSelectedDishes, shareDish,
   openMenuEditor, saveMenuEntry, deleteMenu, searchMenuDishes, shareMenu, openMenuOrderList, showAvailableDishes,
   toggleMenuSelection, selectAllMenus, selectNoMenus, exportSelectedMenus,
+  openMep, resetMep, copyMep,
   addTagGroup, removeTagGroup, renameTagGroup, addTagToGroup, removeTagFromGroup,
 });
 </script>
